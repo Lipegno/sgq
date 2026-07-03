@@ -11,6 +11,7 @@ import com.rodrigommfreitas.coreservice.macroprocess.dto.CreateMacroProcessRespo
 import com.rodrigommfreitas.coreservice.macroprocess.dto.MacroProcessOptionResponse;
 import com.rodrigommfreitas.coreservice.macroprocess.dto.UpdateMacroProcessRequest;
 import com.rodrigommfreitas.coreservice.process.Process;
+import com.rodrigommfreitas.coreservice.process.ProcessYearRepository;
 import com.rodrigommfreitas.coreservice.process.dto.ProcessResponse;
 import com.rodrigommfreitas.coreservice.process.dto.UpdateProcessRequest;
 import com.rodrigommfreitas.coreservice.year.Year;
@@ -30,6 +31,7 @@ public class MacroProcessService {
 
     private final MacroProcessRepository macroProcessRepository;
     private final MacroProcessYearRepository macroProcessYearRepository;
+    private final ProcessYearRepository processYearRepository;
     private final YearRepository yearRepository;
     private final LogService logService;
     private final LogDetailsBuilder logDetailsBuilder;
@@ -151,6 +153,9 @@ public class MacroProcessService {
     public void deleteMacroProcess(Long id) {
         MacroProcess macroProcess = macroProcessRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Macro process not found"));
+
+        processYearRepository.nullifyMacroProcessYearByMacroProcessId(id);
+        macroProcessYearRepository.deleteByMacroProcessId(id);
 
         Long userId = UserContextHolder.getUserId();
 
