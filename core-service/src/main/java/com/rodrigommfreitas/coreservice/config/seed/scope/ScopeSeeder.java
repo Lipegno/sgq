@@ -20,6 +20,7 @@ public class ScopeSeeder {
     }
 
     public void seed() {
+        if (scopeRepository.findById(1L).isPresent()) return;
         Scope scope = new Scope();
         scope.setDescription("initial description");
         scopeRepository.save(scope);

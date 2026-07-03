@@ -51,6 +51,8 @@ public class ScopeService {
         newFields.put("description", scope.getDescription() != null ? scope.getDescription() : "");
 
         if (!oldFields.equals(newFields)) {
+            scope = scopeRepository.save(scope);
+
             Long userId = UserContextHolder.getUserId();
             logService.createLog(new CreateLogRequest(
                     userId,

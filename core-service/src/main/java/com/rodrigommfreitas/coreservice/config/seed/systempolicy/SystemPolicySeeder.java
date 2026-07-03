@@ -14,6 +14,7 @@ public class SystemPolicySeeder {
     }
 
     public void seed() {
+        if (systemPolicyRepository.findById(1L).isPresent()) return;
         SystemPolicy policy = new SystemPolicy();
         policy.setDescription("initial description");
         systemPolicyRepository.save(policy);

@@ -14,6 +14,7 @@ public class ResponsibilityAuthoritySeeder {
     }
 
     public void seed() {
+        if (responsibilityAuthorityRepository.findById(1L).isPresent()) return;
         ResponsibilityAuthority responsibilityAuthority = new ResponsibilityAuthority();
         responsibilityAuthority.setDescription("initial description");
         responsibilityAuthorityRepository.save(responsibilityAuthority);
