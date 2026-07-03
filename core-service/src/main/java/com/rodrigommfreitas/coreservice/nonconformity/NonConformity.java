@@ -42,6 +42,44 @@ public class NonConformity {
     @Enumerated(EnumType.STRING)
     private NonConformityOrigin origin;
 
+
+    // ==========================================
+    // 1. MATRIZ 5W2H (PLANO DE AÇÃO)
+    // ==========================================
+    @Column(columnDefinition = "TEXT")
+    private String whatWillBeDone;
+
+    @Column(columnDefinition = "TEXT")
+    private String why;
+
+    private String who;
+
+    // "where" é uma palavra reservada no SQL (Postgres).
+    // Usamos aspas escapadas para o Hibernate conseguir criar a coluna sem dar erro de sintaxe.
+    @Column(name = "\"where\"", columnDefinition = "TEXT")
+    private String where;
+
+    // java.time.LocalDate lida perfeitamente com o formato de data "AAAA-MM-DD" que o React envia
+    private java.time.LocalDate startDate;
+
+    private java.time.LocalDate expectedEndDate;
+
+    @Column(columnDefinition = "TEXT")
+    private String how;
+
+    private String howMuch;
+
+
+    // ==========================================
+    // 2. VERIFICAÇÃO DE EFICÁCIA
+    // ==========================================
+    @Column(columnDefinition = "TEXT")
+    private String effectivenessVerification;
+
+    private java.time.LocalDate verificationDate;
+
+    private String verificationResponsible;
+
     @OneToMany(mappedBy = "nonConformity", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<NonConformityYear> years = new ArrayList<>();

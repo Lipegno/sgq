@@ -63,6 +63,17 @@ public class NonConformityService {
                 .responsible(responsible)
                 .department(department)
                 .origin(request.origin())
+                .whatWillBeDone(request.whatWillBeDone())
+                .why(request.why())
+                .who(request.who())
+                .where(request.where())
+                .startDate(request.startDate())
+                .expectedEndDate(request.expectedEndDate())
+                .how(request.how())
+                .howMuch(request.howMuch())
+                .effectivenessVerification(request.effectivenessVerification())
+                .verificationDate(request.verificationDate())
+                .verificationResponsible(request.verificationResponsible())
                 .build();
 
         ncRepository.save(nc);
@@ -127,6 +138,17 @@ public class NonConformityService {
         oldFields.put("responsible", nc.getResponsible() != null ? userDisplayName(nc.getResponsible()) : "");
         oldFields.put("department", nc.getDepartment() != null ? nc.getDepartment().getName() : "");
         oldFields.put("origin", nc.getOrigin() != null ? nc.getOrigin().name() : "");
+        oldFields.put("whatWillBeDone", nc.getWhatWillBeDone() != null ? nc.getWhatWillBeDone() : "");
+        oldFields.put("why", nc.getWhy() != null ? nc.getWhy() : "");
+        oldFields.put("who", nc.getWho() != null ? nc.getWho() : "");
+        oldFields.put("where", nc.getWhere() != null ? nc.getWhere() : "");
+        oldFields.put("startDate", nc.getStartDate() != null ? nc.getStartDate().toString() : "");
+        oldFields.put("expectedEndDate", nc.getExpectedEndDate() != null ? nc.getExpectedEndDate().toString() : "");
+        oldFields.put("how", nc.getHow() != null ? nc.getHow() : "");
+        oldFields.put("howMuch", nc.getHowMuch() != null ? nc.getHowMuch() : "");
+        oldFields.put("effectivenessVerification", nc.getEffectivenessVerification() != null ? nc.getEffectivenessVerification() : "");
+        oldFields.put("verificationDate", nc.getVerificationDate() != null ? nc.getVerificationDate().toString() : "");
+        oldFields.put("verificationResponsible", nc.getVerificationResponsible() != null ? nc.getVerificationResponsible() : "");
 
         if (request.name() != null) nc.setName(request.name());
         if (request.description() != null) nc.setDescription(request.description());
@@ -143,6 +165,18 @@ public class NonConformityService {
         }
         if (request.origin() != null) nc.setOrigin(request.origin());
 
+        if (request.whatWillBeDone() != null) nc.setWhatWillBeDone(request.whatWillBeDone());
+        if (request.why() != null) nc.setWhy(request.why());
+        if (request.who() != null) nc.setWho(request.who());
+        if (request.where() != null) nc.setWhere(request.where());
+        if (request.startDate() != null) nc.setStartDate(request.startDate());
+        if (request.expectedEndDate() != null) nc.setExpectedEndDate(request.expectedEndDate());
+        if (request.how() != null) nc.setHow(request.how());
+        if (request.howMuch() != null) nc.setHowMuch(request.howMuch());
+        if (request.effectivenessVerification() != null) nc.setEffectivenessVerification(request.effectivenessVerification());
+        if (request.verificationDate() != null) nc.setVerificationDate(request.verificationDate());
+        if (request.verificationResponsible() != null) nc.setVerificationResponsible(request.verificationResponsible());
+
         ncRepository.save(nc);
 
         Map<String, Object> newFields = new LinkedHashMap<>();
@@ -152,6 +186,18 @@ public class NonConformityService {
         newFields.put("responsible", nc.getResponsible() != null ? userDisplayName(nc.getResponsible()) : "");
         newFields.put("department", nc.getDepartment() != null ? nc.getDepartment().getName() : "");
         newFields.put("origin", nc.getOrigin() != null ? nc.getOrigin().name() : "");
+
+        newFields.put("whatWillBeDone", nc.getWhatWillBeDone() != null ? nc.getWhatWillBeDone() : "");
+        newFields.put("why", nc.getWhy() != null ? nc.getWhy() : "");
+        newFields.put("who", nc.getWho() != null ? nc.getWho() : "");
+        newFields.put("where", nc.getWhere() != null ? nc.getWhere() : "");
+        newFields.put("startDate", nc.getStartDate() != null ? nc.getStartDate().toString() : "");
+        newFields.put("expectedEndDate", nc.getExpectedEndDate() != null ? nc.getExpectedEndDate().toString() : "");
+        newFields.put("how", nc.getHow() != null ? nc.getHow() : "");
+        newFields.put("howMuch", nc.getHowMuch() != null ? nc.getHowMuch() : "");
+        newFields.put("effectivenessVerification", nc.getEffectivenessVerification() != null ? nc.getEffectivenessVerification() : "");
+        newFields.put("verificationDate", nc.getVerificationDate() != null ? nc.getVerificationDate().toString() : "");
+        newFields.put("verificationResponsible", nc.getVerificationResponsible() != null ? nc.getVerificationResponsible() : "");
 
         if (!oldFields.equals(newFields)) {
             Long userId = UserContextHolder.getUserId();
@@ -508,7 +554,18 @@ public class NonConformityService {
                 deptResponse,
                 nc.getOrigin(),
                 years,
-                actions
+                actions,
+                nc.getWhatWillBeDone(),
+                nc.getWhy(),
+                nc.getWho(),
+                nc.getWhere(),
+                nc.getStartDate(),
+                nc.getExpectedEndDate(),
+                nc.getHow(),
+                nc.getHowMuch(),
+                nc.getEffectivenessVerification(),
+                nc.getVerificationDate(),
+                nc.getVerificationResponsible()
         );
     }
 

@@ -60,6 +60,14 @@ public class ImprovementOpportunityService {
                 .responsible(responsible)
                 .department(department)
                 .origin(request.origin())
+                .whatWillBeDone(request.whatWillBeDone())
+                .why(request.why())
+                .who(request.who())
+                .where(request.where())
+                .startDate(request.startDate())
+                .expectedEndDate(request.expectedEndDate())
+                .how(request.how())
+                .howMuch(request.howMuch())
                 .build();
 
         ioRepository.save(io);
@@ -125,6 +133,17 @@ public class ImprovementOpportunityService {
         oldFields.put("department", io.getDepartment() != null ? io.getDepartment().getName() : "");
         oldFields.put("origin", io.getOrigin() != null ? io.getOrigin().name() : "");
 
+        oldFields.put("whatWillBeDone", io.getWhatWillBeDone() != null ? io.getWhatWillBeDone() : "");
+        oldFields.put("why", io.getWhy() != null ? io.getWhy() : "");
+        oldFields.put("who", io.getWho() != null ? io.getWho() : "");
+        oldFields.put("where", io.getWhere() != null ? io.getWhere() : "");
+        oldFields.put("startDate", io.getStartDate() != null ? io.getStartDate().toString() : "");
+        oldFields.put("expectedEndDate", io.getExpectedEndDate() != null ? io.getExpectedEndDate().toString() : "");
+        oldFields.put("how", io.getHow() != null ? io.getHow() : "");
+        oldFields.put("howMuch", io.getHowMuch() != null ? io.getHowMuch() : "");
+        oldFields.put("effectivenessVerification", io.getEffectivenessVerification() != null ? io.getEffectivenessVerification() : "");
+        oldFields.put("verificationDate", io.getVerificationDate() != null ? io.getVerificationDate().toString() : "");
+        oldFields.put("verificationResponsible", io.getVerificationResponsible() != null ? io.getVerificationResponsible() : "");
         if (request.name() != null) io.setName(request.name());
         if (request.description() != null) io.setDescription(request.description());
         if (request.cause() != null) io.setCause(request.cause());
@@ -140,6 +159,18 @@ public class ImprovementOpportunityService {
         }
         if (request.origin() != null) io.setOrigin(request.origin());
 
+        if (request.whatWillBeDone() != null) io.setWhatWillBeDone(request.whatWillBeDone());
+        if (request.why() != null) io.setWhy(request.why());
+        if (request.who() != null) io.setWho(request.who());
+        if (request.where() != null) io.setWhere(request.where());
+        if (request.startDate() != null) io.setStartDate(request.startDate());
+        if (request.expectedEndDate() != null) io.setExpectedEndDate(request.expectedEndDate());
+        if (request.how() != null) io.setHow(request.how());
+        if (request.howMuch() != null) io.setHowMuch(request.howMuch());
+        if (request.effectivenessVerification() != null) io.setEffectivenessVerification(request.effectivenessVerification());
+        if (request.verificationDate() != null) io.setVerificationDate(request.verificationDate());
+        if (request.verificationResponsible() != null) io.setVerificationResponsible(request.verificationResponsible());
+
         ioRepository.save(io);
 
         Map<String, Object> newFields = new LinkedHashMap<>();
@@ -150,6 +181,17 @@ public class ImprovementOpportunityService {
         newFields.put("department", io.getDepartment() != null ? io.getDepartment().getName() : "");
         newFields.put("origin", io.getOrigin() != null ? io.getOrigin().name() : "");
 
+        newFields.put("whatWillBeDone", io.getWhatWillBeDone() != null ? io.getWhatWillBeDone() : "");
+        newFields.put("why", io.getWhy() != null ? io.getWhy() : "");
+        newFields.put("who", io.getWho() != null ? io.getWho() : "");
+        newFields.put("where", io.getWhere() != null ? io.getWhere() : "");
+        newFields.put("startDate", io.getStartDate() != null ? io.getStartDate().toString() : "");
+        newFields.put("expectedEndDate", io.getExpectedEndDate() != null ? io.getExpectedEndDate().toString() : "");
+        newFields.put("how", io.getHow() != null ? io.getHow() : "");
+        newFields.put("howMuch", io.getHowMuch() != null ? io.getHowMuch() : "");
+        newFields.put("effectivenessVerification", io.getEffectivenessVerification() != null ? io.getEffectivenessVerification() : "");
+        newFields.put("verificationDate", io.getVerificationDate() != null ? io.getVerificationDate().toString() : "");
+        newFields.put("verificationResponsible", io.getVerificationResponsible() != null ? io.getVerificationResponsible() : "");
         if (!oldFields.equals(newFields)) {
             Long userId = UserContextHolder.getUserId();
             logService.createLog(new CreateLogRequest(
@@ -503,7 +545,19 @@ public class ImprovementOpportunityService {
                 deptResponse,
                 io.getOrigin(),
                 years,
-                actions
+                actions,
+
+                io.getWhatWillBeDone(),
+                io.getWhy(),
+                io.getWho(),
+                io.getWhere(),
+                io.getStartDate(),
+                io.getExpectedEndDate(),
+                io.getHow(),
+                io.getHowMuch(),
+                io.getEffectivenessVerification(),
+                io.getVerificationDate(),
+                io.getVerificationResponsible()
         );
     }
 
