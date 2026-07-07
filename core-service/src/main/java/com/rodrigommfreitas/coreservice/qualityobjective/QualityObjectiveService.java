@@ -90,6 +90,10 @@ public class QualityObjectiveService {
                     .indicators(new HashSet<>())
                     .build();
 
+            List<ObjectiveAction> actions = mapActionDtosToEntities(request.actions());
+            actions.forEach(action -> action.setQualityObjectiveYear(qoy));
+            qoy.setActions(actions);
+
             yearRepository.save(qoy);
             qualityObjective.getYears().add(qoy);
             yearStrs.add(String.valueOf(year.getYear()));
@@ -140,11 +144,20 @@ public class QualityObjectiveService {
         QualityObjective qualityObjective = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("QualityObjective not found"));
 
+        // 1. Procurar o QualityObjectiveYear apenas UMA VEZ no início
+        final QualityObjectiveYear qoy = (request.yearId() != null)
+                ? yearRepository.findByQualityObjectiveIdAndYearId(id, request.yearId())
+                .orElseThrow(() -> new RuntimeException("QualityObjectiveYear not found"))
+                : null;
+
+        // 2. Fotografar o estado ANTIGO para auditoria
         Map<String, Object> oldFields = new LinkedHashMap<>();
         oldFields.put("objectiveTitle", qualityObjective.getObjectiveTitle() != null ? qualityObjective.getObjectiveTitle() : "");
         oldFields.put("description", qualityObjective.getDescription() != null ? qualityObjective.getDescription() : "");
         oldFields.put("responsible", qualityObjective.getResponsible() != null ? userDisplayName(qualityObjective.getResponsible()) : "");
+        oldFields.put("actions", qoy != null ? formatActionsForLog(qoy.getActions()) : "");
 
+        // 3. Atualizar e gravar os dados globais do Objetivo (Pai)
         if (request.objectiveTitle() != null) qualityObjective.setObjectiveTitle(request.objectiveTitle());
         if (request.description() != null) qualityObjective.setDescription(request.description());
         if (request.responsibleId() != null) qualityObjective.setResponsible(
@@ -152,62 +165,77 @@ public class QualityObjectiveService {
 
         repository.save(qualityObjective);
 
+        boolean yearFieldsChanged = false;
+
+        // 4. Se temos o registo do ano (qoy), processamos todas as suas atualizações
+        if (qoy != null) {
+
+            // A) Atualizar Status
+            if (request.status() != null) {
+                qoy.setStatus(request.status());
+                yearFieldsChanged = true;
+            }
+
+            // B) Atualizar Ações
+            if (request.actions() != null) {
+                qoy.getActions().clear();
+                List<ObjectiveAction> updatedActions = mapActionDtosToEntities(request.actions());
+                updatedActions.forEach(action -> action.setQualityObjectiveYear(qoy));
+                qoy.getActions().addAll(updatedActions);
+                yearFieldsChanged = true;
+            }
+
+            // C) Atualizar Processos
+            if (request.processYearIds() != null) {
+                for (ProcessYear py : new HashSet<>(qoy.getProcesses())) {
+                    py.getQualityObjectives().remove(qoy);
+                }
+                qoy.getProcesses().clear();
+                for (Long processYearId : request.processYearIds()) {
+                    ProcessYear py = processYearRepository.findById(processYearId)
+                            .orElseThrow(() -> new RuntimeException("ProcessYear not found"));
+                    if (!py.getYear().getId().equals(request.yearId())) {
+                        throw new RuntimeException("Process must belong to the same year");
+                    }
+                    qoy.getProcesses().add(py);
+                    py.getQualityObjectives().add(qoy);
+                }
+                yearFieldsChanged = true;
+            }
+
+            // D) Atualizar Indicadores
+            if (request.indicatorYearIds() != null) {
+                for (IndicatorYear iy : new HashSet<>(qoy.getIndicators())) {
+                    iy.getQualityObjectives().remove(qoy);
+                }
+                qoy.getIndicators().clear();
+                for (Long indicatorYearId : request.indicatorYearIds()) {
+                    IndicatorYear iy = indicatorYearRepository.findById(indicatorYearId)
+                            .orElseThrow(() -> new RuntimeException("IndicatorYear not found"));
+                    if (!iy.getYear().getId().equals(request.yearId())) {
+                        throw new RuntimeException("Indicator must belong to the same year");
+                    }
+                    qoy.getIndicators().add(iy);
+                    iy.getQualityObjectives().add(qoy);
+                }
+                yearFieldsChanged = true;
+            }
+
+            // Grava todas as alterações feitas no registo do ano (status, ações, processos, indicadores)
+            if (yearFieldsChanged) {
+                yearRepository.save(qoy);
+            }
+        }
+
+        // 5. Fotografar o estado NOVO para auditoria
         Map<String, Object> newFields = new LinkedHashMap<>();
         newFields.put("objectiveTitle", qualityObjective.getObjectiveTitle() != null ? qualityObjective.getObjectiveTitle() : "");
         newFields.put("description", qualityObjective.getDescription() != null ? qualityObjective.getDescription() : "");
         newFields.put("responsible", qualityObjective.getResponsible() != null ? userDisplayName(qualityObjective.getResponsible()) : "");
+        newFields.put("actions", qoy != null ? formatActionsForLog(qoy.getActions()) : "");
 
+        // 6. Comparar e Gerar Log se houver alterações
         boolean baseChanged = !oldFields.equals(newFields);
-
-        boolean yearFieldsChanged = false;
-        if (request.yearId() != null && request.status() != null) {
-            QualityObjectiveYear qoy = yearRepository
-                    .findByQualityObjectiveIdAndYearId(id, request.yearId())
-                    .orElseThrow(() -> new RuntimeException("QualityObjectiveYear not found"));
-            qoy.setStatus(request.status());
-            yearRepository.save(qoy);
-            yearFieldsChanged = true;
-        }
-
-        if (request.yearId() != null && request.processYearIds() != null) {
-            QualityObjectiveYear qoy = yearRepository
-                    .findByQualityObjectiveIdAndYearId(id, request.yearId())
-                    .orElseThrow(() -> new RuntimeException("QualityObjectiveYear not found"));
-            for (ProcessYear py : new HashSet<>(qoy.getProcesses())) {
-                py.getQualityObjectives().remove(qoy);
-            }
-            qoy.getProcesses().clear();
-            for (Long processYearId : request.processYearIds()) {
-                ProcessYear py = processYearRepository.findById(processYearId)
-                        .orElseThrow(() -> new RuntimeException("ProcessYear not found"));
-                if (!py.getYear().getId().equals(request.yearId())) {
-                    throw new RuntimeException("Process must belong to the same year");
-                }
-                qoy.getProcesses().add(py);
-                py.getQualityObjectives().add(qoy);
-            }
-            yearRepository.save(qoy);
-        }
-
-        if (request.yearId() != null && request.indicatorYearIds() != null) {
-            QualityObjectiveYear qoy = yearRepository
-                    .findByQualityObjectiveIdAndYearId(id, request.yearId())
-                    .orElseThrow(() -> new RuntimeException("QualityObjectiveYear not found"));
-            for (IndicatorYear iy : new HashSet<>(qoy.getIndicators())) {
-                iy.getQualityObjectives().remove(qoy);
-            }
-            qoy.getIndicators().clear();
-            for (Long indicatorYearId : request.indicatorYearIds()) {
-                IndicatorYear iy = indicatorYearRepository.findById(indicatorYearId)
-                        .orElseThrow(() -> new RuntimeException("IndicatorYear not found"));
-                if (!iy.getYear().getId().equals(request.yearId())) {
-                    throw new RuntimeException("Indicator must belong to the same year");
-                }
-                qoy.getIndicators().add(iy);
-                iy.getQualityObjectives().add(qoy);
-            }
-            yearRepository.save(qoy);
-        }
 
         if (baseChanged || yearFieldsChanged) {
             Long userId = UserContextHolder.getUserId();
@@ -396,6 +424,10 @@ entityName + " — " + String.valueOf(year.getYear()),
                 .map(this::mapToIndicatorResponse)
                 .toList();
 
+        // 🌟 1. Converte as ações associadas a este ano específico para DTO
+        List<ObjectiveActionDto> actionDtos = mapEntitiesToDtos(qoy.getActions());
+
+        // 2. Passa a variável 'actionDtos' como o ÚLTIMO argumento do construtor do Record
         return new QualityObjectiveResponse(
                 qo.getId(),
                 qoy.getId(),
@@ -407,7 +439,8 @@ entityName + " — " + String.valueOf(year.getYear()),
                 qoy.getStatus(),
                 years,
                 processes,
-                indicators
+                indicators,
+                actionDtos // 🌟 O parâmetro que faltava para bater certo com o Record!
         );
     }
 
@@ -513,10 +546,60 @@ entityName + " — " + String.valueOf(year.getYear()),
         yearRepository.save(qoy);
     }
 
+    private List<ObjectiveAction> mapActionDtosToEntities(List<ObjectiveActionDto> dtos) {
+        if (dtos == null) return new ArrayList<>();
+
+        return dtos.stream().map(dto -> {
+            ObjectiveAction action = new ObjectiveAction();
+            action.setId(dto.getId()); // Será null nos novos, terá ID nos existentes
+            action.setActionText(dto.getActionText());
+            action.setDeadline(dto.getDeadline());
+            action.setResources(dto.getResources());
+            action.setResponsibleId(dto.getResponsibleId());
+            action.setStartDate(dto.getStartDate());
+            action.setEndDate(dto.getEndDate());
+            action.setQ1Review(dto.getQ1Review());
+            action.setQ2Review(dto.getQ2Review());
+            action.setQ3Review(dto.getQ3Review());
+            action.setFinalResult(dto.getFinalResult());
+            action.setTargetAchieved(dto.isTargetAchieved());
+            action.setObservations(dto.getObservations());
+            return action;
+        }).collect(Collectors.toList());
+    }
+
+    private List<ObjectiveActionDto> mapEntitiesToDtos(Collection<ObjectiveAction> entities) {
+        if (entities == null) return new ArrayList<>();
+        return entities.stream().map(action -> {
+            ObjectiveActionDto dto = new ObjectiveActionDto();
+            dto.setId(action.getId());
+            dto.setActionText(action.getActionText());
+            dto.setDeadline(action.getDeadline());
+            dto.setResources(action.getResources());
+            dto.setResponsibleId(action.getResponsibleId());
+            dto.setStartDate(action.getStartDate());
+            dto.setEndDate(action.getEndDate());
+            dto.setQ1Review(action.getQ1Review());
+            dto.setQ2Review(action.getQ2Review());
+            dto.setQ3Review(action.getQ3Review());
+            dto.setFinalResult(action.getFinalResult());
+            dto.setTargetAchieved(action.isTargetAchieved());
+            dto.setObservations(action.getObservations());
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
     private String userDisplayName(User user) {
         if (user == null) return "";
         String first = user.getFirstName() != null ? user.getFirstName() : "";
         String last = user.getLastName() != null ? user.getLastName() : "";
         return (first + " " + last).trim();
+    }
+
+    private String formatActionsForLog(Collection<ObjectiveAction> actions) {
+        if (actions == null || actions.isEmpty()) return "Nenhuma ação definida";
+        return actions.stream()
+                .map(a -> a.getActionText() != null ? a.getActionText() : "Ação sem texto")
+                .collect(Collectors.joining(" | "));
     }
 }

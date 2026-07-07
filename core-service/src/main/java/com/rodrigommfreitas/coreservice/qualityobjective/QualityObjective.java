@@ -31,4 +31,5 @@ public class QualityObjective {
     @Builder.Default
     @OneToMany(mappedBy = "qualityObjective", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<QualityObjectiveYear> years = new ArrayList<>();
+
 }

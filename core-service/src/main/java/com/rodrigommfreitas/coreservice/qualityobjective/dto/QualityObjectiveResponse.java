@@ -20,5 +20,6 @@ public record QualityObjectiveResponse(
         List<YearOption> years,
 
         List<ProcessOptionResponse> processes,
-        List<QualityObjectiveIndicatorResponse> indicators
+        List<QualityObjectiveIndicatorResponse> indicators,
+        List<ObjectiveActionDto>actions
 ) {}
