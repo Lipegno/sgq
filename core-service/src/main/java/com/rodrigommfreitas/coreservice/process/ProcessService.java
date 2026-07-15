@@ -567,6 +567,19 @@ Set<Department> departments = new HashSet<>();
         ProcessYear processYear = processYearRepository.findById(processYearId)
                 .orElseThrow(() -> new RuntimeException("ProcessYear not found: " + processYearId));
 
+        Process process = processYear.getProcess();
+
+        Long currentUserId = UserContextHolder.getUserId();
+        User currentUser = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        boolean isSuperAdmin = currentUser.getRoles().contains(Role.ROLE_SUPERADMIN);
+        boolean isResponsible = process.getResponsibles().stream()
+                .anyMatch(r -> r.getId().equals(currentUserId));
+
+        if (!isResponsible && !isSuperAdmin) {
+            throw new RuntimeException("Apenas os responsáveis do processo podem editá-lo");
+        }
+
         Map<String, Object> fields = new LinkedHashMap<>();
         fields.put("name", processYear.getProcess().getName());
         fields.put("yearId", processYear.getYear().getYear());

@@ -14,6 +14,9 @@ import com.rodrigommfreitas.coreservice.process.Process;
 import com.rodrigommfreitas.coreservice.process.ProcessYearRepository;
 import com.rodrigommfreitas.coreservice.process.dto.ProcessResponse;
 import com.rodrigommfreitas.coreservice.process.dto.UpdateProcessRequest;
+import com.rodrigommfreitas.coreservice.user.Role;
+import com.rodrigommfreitas.coreservice.user.User;
+import com.rodrigommfreitas.coreservice.user.UserRepository;
 import com.rodrigommfreitas.coreservice.year.Year;
 import com.rodrigommfreitas.coreservice.year.YearRepository;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +38,8 @@ public class MacroProcessService {
     private final YearRepository yearRepository;
     private final LogService logService;
     private final LogDetailsBuilder logDetailsBuilder;
+    private final UserRepository userRepository;
+
 
     @Transactional
     public CreateMacroProcessResponse create(CreateMacroProcessRequest request) {
@@ -42,6 +47,17 @@ public class MacroProcessService {
         if (macroProcessRepository.existsByName(request.name())) {
             throw new IllegalArgumentException("Macro process with this name already exists");
         }
+
+        Long currentUserId = UserContextHolder.getUserId();
+        User currentUser = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        boolean isSuperAdmin = currentUser.getRoles().contains(Role.ROLE_SUPERADMIN);
+
+        if (!isSuperAdmin) {
+            throw new RuntimeException("Apenas os administradores podem adicionar macro processos");
+        }
+
 
         Year year = yearRepository.findById(request.yearId())
                 .orElseThrow(() -> new IllegalArgumentException("Year not found"));
@@ -99,9 +115,6 @@ public class MacroProcessService {
             macroProcess.setName(request.name());
         }
 
-
-
-
         // LOG only if something changed
         if (!oldFields.isEmpty()) {
             JsonNode details = logDetailsBuilder.buildUpdated(oldFields, newFields);
@@ -158,6 +171,16 @@ public class MacroProcessService {
         macroProcessYearRepository.deleteByMacroProcessId(id);
 
         Long userId = UserContextHolder.getUserId();
+
+        Long currentUserId = UserContextHolder.getUserId();
+        User currentUser = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        boolean isSuperAdmin = currentUser.getRoles().contains(Role.ROLE_SUPERADMIN);
+
+        if (!isSuperAdmin) {
+            throw new RuntimeException("Apenas administradores podem remover macro processos");
+        }
 
         Map<String, Object> fields = Map.of("name", macroProcess.getName());
         JsonNode detailsNode = logDetailsBuilder.buildDeleted(fields);
