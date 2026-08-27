@@ -12,6 +12,7 @@ import { LogDialog } from "@/components/log-dialog";
 import type { EntityType, DepartmentResponse, YearResponse } from "@/types";
 import { useAuth } from "@/context/auth-context";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MacroProcessDiagramCard } from "./macro-process-diagram-card";
 
 export default function ProcessesPage() {
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
@@ -100,6 +101,17 @@ export default function ProcessesPage() {
         </div>
       )}
 
+      {selectedYearId !== null && (
+        <MacroProcessDiagramCard
+          yearId={selectedYearId}
+          year={
+            years?.find(
+              (y: YearResponse) => y.id === selectedYearId,
+            )?.year
+          }
+        />
+      )}
+
       {selectedYearId !== null && departments && departments.length > 0 && (
         <div className="flex items-center gap-2">
           <Filter size={16} className="text-muted-foreground" />
@@ -139,9 +151,8 @@ export default function ProcessesPage() {
               className="flex items-center gap-2 group"
             >
               <div
-                className={`text-slate-400 transition-transform duration-200 ${
-                  collapsedSections["general"] ? "-rotate-90" : ""
-                }`}
+                className={`text-slate-400 transition-transform duration-200 ${collapsedSections["general"] ? "-rotate-90" : ""
+                  }`}
               >
                 <ChevronDown size={20} />
               </div>
@@ -153,9 +164,8 @@ export default function ProcessesPage() {
             {!isExternal && <CreateIndependentProcessDialog yearId={selectedYearId} />}
           </div>
           <div
-            className={`overflow-hidden transition-all duration-200 ease-in-out ${
-              collapsedSections["general"] ? "max-h-0 opacity-0" : "max-h-[1000px] opacity-100"
-            }`}
+            className={`overflow-hidden transition-all duration-200 ease-in-out ${collapsedSections["general"] ? "max-h-0 opacity-0" : "max-h-[1000px] opacity-100"
+              }`}
           >
             <div className="space-y-4 py-2">
               {filteredData.standaloneProcesses.map((process) => (
@@ -174,9 +184,8 @@ export default function ProcessesPage() {
               className="flex items-center gap-2 group"
             >
               <div
-                className={`text-slate-400 transition-transform duration-200 ${
-                  collapsedSections[macro.name] ? "-rotate-90" : ""
-                }`}
+                className={`text-slate-400 transition-transform duration-200 ${collapsedSections[macro.name] ? "-rotate-90" : ""
+                  }`}
               >
                 <ChevronDown size={20} />
               </div>
@@ -187,9 +196,8 @@ export default function ProcessesPage() {
           </div>
           {macro.processes.length > 0 && (
             <div
-              className={`overflow-hidden transition-all duration-200 ease-in-out ${
-                collapsedSections[macro.name] ? "max-h-0 opacity-0" : "max-h-[1000px] opacity-100"
-              }`}
+              className={`overflow-hidden transition-all duration-200 ease-in-out ${collapsedSections[macro.name] ? "max-h-0 opacity-0" : "max-h-[1000px] opacity-100"
+                }`}
             >
               <div className="space-y-4 py-2">
                 {macro.processes.map((process) => (

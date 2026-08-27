@@ -4,6 +4,12 @@ export type NonConformityOrigin = "INTERNAL_AUDIT" | "CLIENT" | "EXTERNAL_AUDIT"
 export type NonConformityStatus = "OPEN" | "UNDER_TREATMENT" | "FINISHED" | "CLASSIFIED";
 export type CorrectiveActionStatus = "REGISTERED" | "IN_PROGRESS" | "FINISHED";
 
+export interface MacroProcessDiagramResponse {
+  yearId: number;
+  year: number;
+  document: SingletonDocumentResponse["document"];
+}
+
 export interface CorrectiveActionResponse {
   id: number;
   name: string;
@@ -281,16 +287,16 @@ export interface IndicatorSimple {
   owner?: string;
 }
 
-export interface IndicatorWithProcesses extends Indicator {
-  processes: IndicatorProcess[];
-  owner: string;
-  indicatorYearId?: number;
-  indicatorId?: number;
-  goal?: number | null;
-  valueType?: string;
-  responsible?: UserSummary | null;
-  notes?: string | null;
-}
+// export interface IndicatorWithProcesses extends Indicator {
+//   processes: IndicatorProcess[];
+//   owner: string;
+//   indicatorYearId?: number;
+//   indicatorId?: number;
+//   goal?: number | null;
+//   valueType?: string;
+//   responsible?: UserSummary | null;
+//   notes?: string | null;
+// }
 
 export interface IndicatorFullResponse extends Indicator {
   processes: ProcessSummary[];
@@ -332,11 +338,15 @@ export interface ProcessHierarchyItem {
   processId: number;
   name: string;
   objective: string;
+  entradas: string | null;
+  atividades: string | null;
+  saidas: string | null;
   entradasDocumentos: DocumentSummary[];
   saidasDocumentos: DocumentSummary[];
   fichaDocumento: DocumentSummary | null;
   documents: DocumentSummary[];
-  responsibles: UserSummary[];
+  editors: UserSummary[];  
+  formalResponsibles: ProcessResponsibleResponse[];
   departments: DepartmentResponse[];
   indicators: IndicatorHierarchyResponse[];
   years: YearOption[];
@@ -850,7 +860,8 @@ export interface HumanResourceResponse {
   id: number;
   name: string;
   function: string;
-  department: string;
+  departmentId: number | null;
+  departmentName: string | null;
   competencies: CompetencyResponse[];
   yearId: number;
   year: number;
@@ -862,14 +873,14 @@ export interface HumanResourceResponse {
 export interface CreateHumanResourceRequest {
   name: string;
   function: string;
-  department: string;
+  departmentId: number | null;
   yearIds: number[];
 }
 
 export interface UpdateHumanResourceRequest {
   name?: string;
   function?: string;
-  department?: string;
+  departmentId?: number | null;
   yearId?: number;
   isActive?: boolean;
 }
@@ -1034,4 +1045,12 @@ export interface LogResponse {
   entityName: string;
   action: ActionType;
   details: Record<string, unknown> | null;
+}
+
+export interface ProcessResponsibleResponse {
+  humanResourceYearId: number;
+  humanResourceId: number;
+  name: string;
+  function: string | null;
+  department: string | null;
 }

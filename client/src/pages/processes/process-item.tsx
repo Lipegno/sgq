@@ -29,9 +29,11 @@ export const ProcessItem: React.FC<ProcessItemProps> = ({ process, macroProcessI
 
           <div className="text-sm text-slate-500 mr-4 flex items-center gap-2 shrink-0">
             <Users size={14} />
-            {process.responsibles.length > 0
-              ? process.responsibles.map((r) => `${r.firstName} ${r.lastName}`).join(", ")
-              : "—"}
+           {process.formalResponsibles.length > 0
+                  ? process.formalResponsibles
+                      .map((r) => r.name)
+                      .join(", ")
+                  : "—"}
           </div>
 
           <div className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs font-medium shrink-0">

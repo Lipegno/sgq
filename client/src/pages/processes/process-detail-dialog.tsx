@@ -15,24 +15,23 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
   updateProcess,
-  addProcessResponsible,
-  removeProcessResponsible,
   addProcessDepartment,
   removeProcessDepartment,
   getDepartments,
   getUsers,
+  addProcessEditor,
+  removeProcessEditor,
   removeProcessDocument,
   uploadProcessDocument,
   uploadProcessFichaDocumento,
   clearProcessFichaDocumento,
-  uploadProcessEntradasDocumento,
-  removeProcessEntradasDocumento,
-  uploadProcessSaidasDocumento,
-  removeProcessSaidasDocumento,
   getQualityObjectivesByYear,
   getRiskOpportunitiesByYear,
   getInterestedPartiesByYear,
   stripUuidSuffix,
+  getHumanResourcesByYear,
+  addProcessFormalResponsible,
+  removeProcessFormalResponsible, 
 } from "@/api/core";
 import { AssociateIndicatorDialog } from "./associate-indicator-dialog";
 import { AssociateInterestedPartyDialog } from "./associate-interestedparty-dialog";
@@ -41,7 +40,7 @@ import { AssociateQualityObjectiveDialog } from "./associate-qualityobjective-di
 import {
   Target, Users, Save, X, Building2, Plus, UserPlus,
   FileText, Upload, Download, ArrowRight, Shield, AlertTriangle, UsersRound,
-  Paperclip, Trash2, ChevronDown,
+  Paperclip, Trash2, ChevronDown, ListChecks,
 } from "lucide-react";
 import type {
   ProcessHierarchyItem,
@@ -112,11 +111,15 @@ export function ProcessDetailDialog({
   const { user } = useAuth();
   const canEdit = !isExternal && (
     user?.roles.includes("ROLE_SUPERADMIN") ||
-    process.responsibles.some(r => r.id === user?.id)
+    process.editors.some(e => e.id === user?.id)
   );
   const [editName, setEditName] = useState(process.name);
   const [editObjective, setEditObjective] = useState(process.objective);
+  const [editEntradas, setEditEntradas] = useState(process.entradas ?? "");
+  const [editAtividades, setEditAtividades] = useState(process.atividades ?? "");
+  const [editSaidas, setEditSaidas] = useState(process.saidas ?? "");
   const [addResponsibleOpen, setAddResponsibleOpen] = useState(false);
+  const [addEditorOpen, setAddEditorOpen] = useState(false);
   const [addDeptOpen, setAddDeptOpen] = useState(false);
   const [indicatorOpen, setIndicatorOpen] = useState(false);
   const [interestedPartyOpen, setInterestedPartyOpen] = useState(false);
@@ -124,8 +127,6 @@ export function ProcessDetailDialog({
   const [qualityObjectiveOpen, setQualityObjectiveOpen] = useState(false);
   const docFileRef = useRef<HTMLInputElement>(null);
   const fichaFileRef = useRef<HTMLInputElement>(null);
-  const entradasFileRef = useRef<HTMLInputElement>(null);
-  const saidasFileRef = useRef<HTMLInputElement>(null);
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [uploadingFicha, setUploadingFicha] = useState(false);
   const [uploadingEntradas, setUploadingEntradas] = useState(false);
@@ -134,15 +135,46 @@ export function ProcessDetailDialog({
   useEffect(() => {
     setEditName(process.name);
     setEditObjective(process.objective);
-  }, [process.name, process.objective]);
+    setEditEntradas(process.entradas ?? "");
+    setEditAtividades(process.atividades ?? "");
+    setEditSaidas(process.saidas ?? "");
+  }, [
+    process.name,
+    process.objective,
+    process.entradas,
+    process.atividades,
+    process.saidas,
+  ]);
 
   const hasChanges = useMemo(() => {
-    return editName !== process.name || editObjective !== process.objective;
-  }, [editName, editObjective, process.name, process.objective]);
+    return (
+      editName !== process.name ||
+      editObjective !== process.objective ||
+      editEntradas !== (process.entradas ?? "") ||
+      editAtividades !== (process.atividades ?? "") ||
+      editSaidas !== (process.saidas ?? "")
+    );
+  }, [
+    editName,
+    editObjective,
+    editEntradas,
+    editAtividades,
+    editSaidas,
+    process.name,
+    process.objective,
+    process.entradas,
+    process.atividades,
+    process.saidas,
+  ]);
 
   const updateMutation = useMutation({
-    mutationFn: (data: { name?: string; objective?: string }) =>
-      updateProcess(process.processId, data),
+    mutationFn: (data: {
+      name?: string;
+      objective?: string;
+      entradas?: string;
+      atividades?: string;
+      saidas?: string;
+    }) => updateProcess(process.processId, data),
     onSuccess: () => {
       toast.success("Processo atualizado com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["macroprocess-hierarchy"] });
@@ -152,8 +184,8 @@ export function ProcessDetailDialog({
     },
   });
 
-  const addResponsibleMutation = useMutation({
-    mutationFn: (userId: number) => addProcessResponsible(process.processId, userId),
+/*   const addEditorMutation = useMutation({
+    mutationFn: (userId: number) => addProcessEditor(process.processId, userId),
     onSuccess: () => {
       toast.success("Responsável adicionado!");
       queryClient.invalidateQueries({ queryKey: ["macroprocess-hierarchy"] });
@@ -164,8 +196,8 @@ export function ProcessDetailDialog({
     },
   });
 
-  const removeResponsibleMutation = useMutation({
-    mutationFn: (userId: number) => removeProcessResponsible(process.processId, userId),
+  const removeEditorMutation = useMutation({
+    mutationFn: (userId: number) => removeProcessEditor(process.processId, userId),
     onSuccess: () => {
       toast.success("Responsável removido!");
       queryClient.invalidateQueries({ queryKey: ["macroprocess-hierarchy"] });
@@ -173,7 +205,7 @@ export function ProcessDetailDialog({
     onError: (err: any) => {
       toast.error(err?.response?.data?.message ?? "Erro ao remover responsável");
     },
-  });
+  }); */
 
   const addDeptMutation = useMutation({
     mutationFn: (deptId: number) => addProcessDepartment(process.processId, deptId),
@@ -216,28 +248,16 @@ export function ProcessDetailDialog({
     onError: () => toast.error("Erro ao remover ficha do processo."),
   });
 
-  const removeEntradasMutation = useMutation({
-    mutationFn: (docId: number) => removeProcessEntradasDocumento(process.processId, docId),
-    onSuccess: () => {
-      toast.success("Entrada removida!");
-      queryClient.invalidateQueries({ queryKey: ["macroprocess-hierarchy"] });
-    },
-    onError: () => toast.error("Erro ao remover entrada."),
-  });
-
-  const removeSaidasMutation = useMutation({
-    mutationFn: (docId: number) => removeProcessSaidasDocumento(process.processId, docId),
-    onSuccess: () => {
-      toast.success("Saída removida!");
-      queryClient.invalidateQueries({ queryKey: ["macroprocess-hierarchy"] });
-    },
-    onError: () => toast.error("Erro ao remover saída."),
+  const { data: humanResources } = useQuery({
+    queryKey: ["human-resources", yearId],
+    queryFn: () => getHumanResourcesByYear(yearId!),
+    enabled: !!yearId && addResponsibleOpen,
   });
 
   const { data: allUsers } = useQuery({
-    queryKey: ["users"],
-    queryFn: getUsers,
-    enabled: addResponsibleOpen,
+  queryKey: ["users"],
+  queryFn: getUsers,
+  enabled: addEditorOpen,
   });
 
   const { data: allDepts } = useQuery({
@@ -264,9 +284,19 @@ export function ProcessDetailDialog({
     enabled: !!yearId && open,
   });
 
-  const availableUsers = allUsers?.filter(
-    (u) => !process.responsibles.some((r) => r.id === u.id)
-  ) ?? [];
+  const processDepartmentIds = new Set(
+    process.departments.map(d => d.id)
+  );
+
+  const availableFormalResponsibles = (humanResources ?? []).filter((hr) => {
+    if (!hr.isActive) return false;
+    if (hr.departmentId == null) return false;
+    if (!processDepartmentIds.has(hr.departmentId)) return false;
+
+    return !process.formalResponsibles.some(
+      r => r.humanResourceYearId === hr.hryId
+    );
+  });
 
   const availableDepts = allDepts?.filter(
     (d) => !process.departments.some((pd) => pd.id === d.id)
@@ -287,14 +317,85 @@ export function ProcessDetailDialog({
     ip.processes?.some((p) => p.processYearId === process.processYearId)
   );
 
+  const addFormalResponsibleMutation = useMutation({
+  mutationFn: (humanResourceYearId: number) =>
+    addProcessFormalResponsible(
+      process.processYearId,
+      humanResourceYearId
+    ),
+  onSuccess: () => {
+    toast.success("Responsável adicionado!");
+    queryClient.invalidateQueries({
+      queryKey: ["macroprocess-hierarchy"],
+    });
+    setAddResponsibleOpen(false);
+  },
+  onError: (err: any) => {
+    toast.error(
+      err?.response?.data?.message ??
+        "Erro ao adicionar responsável"
+    );
+  },
+});
+
+const removeFormalResponsibleMutation = useMutation({
+  mutationFn: (humanResourceYearId: number) =>
+    removeProcessFormalResponsible(
+      process.processYearId,
+      humanResourceYearId
+    ),
+  onSuccess: () => {
+    toast.success("Responsável removido!");
+    queryClient.invalidateQueries({
+      queryKey: ["macroprocess-hierarchy"],
+    });
+  },
+  onError: (err: any) => {
+    toast.error(
+      err?.response?.data?.message ??
+        "Erro ao remover responsável"
+    );
+  },
+});
+
   const handleSave = () => {
     if (!hasChanges) return;
+
+    if (!editAtividades.trim()) {
+      toast.error("As atividades são obrigatórias.");
+      return;
+    }
+
     const changes: Record<string, any> = {};
-    if (editName !== process.name) changes.name = editName;
-    if (editObjective !== process.objective) changes.objective = editObjective;
+
+    if (editName !== process.name) {
+      changes.name = editName;
+    }
+
+    if (editObjective !== process.objective) {
+      changes.objective = editObjective;
+    }
+
+    if (editEntradas !== (process.entradas ?? "")) {
+      changes.entradas = editEntradas;
+    }
+
+    if (editAtividades !== (process.atividades ?? "")) {
+      changes.atividades = editAtividades;
+    }
+
+    if (editSaidas !== (process.saidas ?? "")) {
+      changes.saidas = editSaidas;
+    }
+
     if (Object.keys(changes).length === 0) return;
+
     updateMutation.mutate(changes);
   };
+
+  const availableEditors = allUsers?.filter(
+  (u) => !process.editors.some((e) => e.id === u.id)
+  ) ?? [];
 
   async function handleUploadDoc() {
     const input = docFileRef.current;
@@ -332,41 +433,44 @@ export function ProcessDetailDialog({
     }
   }
 
-  async function handleUploadEntradas() {
-    const input = entradasFileRef.current;
-    if (!input?.files?.length) return;
-    const file = input.files[0];
-    const userId = user?.id ?? 1;
-    setUploadingEntradas(true);
-    try {
-      await uploadProcessEntradasDocumento(process.processId, file, userId);
-      queryClient.invalidateQueries({ queryKey: ["macroprocess-hierarchy"] });
-      toast.success("Entrada carregada com sucesso.");
-    } catch {
-      toast.error("Erro ao carregar entrada.");
-    } finally {
-      setUploadingEntradas(false);
-      if (input) input.value = "";
-    }
-  }
+  const addEditorMutation = useMutation({
+  mutationFn: (userId: number) =>
+    addProcessEditor(process.processId, userId),
 
-  async function handleUploadSaidas() {
-    const input = saidasFileRef.current;
-    if (!input?.files?.length) return;
-    const file = input.files[0];
-    const userId = user?.id ?? 1;
-    setUploadingSaidas(true);
-    try {
-      await uploadProcessSaidasDocumento(process.processId, file, userId);
-      queryClient.invalidateQueries({ queryKey: ["macroprocess-hierarchy"] });
-      toast.success("Saída carregada com sucesso.");
-    } catch {
-      toast.error("Erro ao carregar saída.");
-    } finally {
-      setUploadingSaidas(false);
-      if (input) input.value = "";
-    }
-  }
+  onSuccess: () => {
+    toast.success("Editor adicionado!");
+    queryClient.invalidateQueries({
+      queryKey: ["macroprocess-hierarchy"],
+    });
+    setAddEditorOpen(false);
+  },
+
+  onError: (err: any) => {
+    toast.error(
+      err?.response?.data?.message ??
+        "Erro ao adicionar editor"
+    );
+  },
+});
+
+const removeEditorMutation = useMutation({
+  mutationFn: (userId: number) =>
+    removeProcessEditor(process.processId, userId),
+
+  onSuccess: () => {
+    toast.success("Editor removido!");
+    queryClient.invalidateQueries({
+      queryKey: ["macroprocess-hierarchy"],
+    });
+  },
+
+  onError: (err: any) => {
+    toast.error(
+      err?.response?.data?.message ??
+        "Erro ao remover editor"
+    );
+  },
+});
 
   const textareaClass = "flex min-h-[100px] w-full rounded-md border border-input bg-slate-50 px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none resize-none";
 
@@ -407,7 +511,9 @@ export function ProcessDetailDialog({
             )}
           </div>
 
-          {/* Entradas */}
+          {/* 
+          
+          Entradas 
           <div className="space-y-3">
             <div className="flex items-center justify-between border-b border-slate-200 pb-2">
               <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wide flex items-center gap-2">
@@ -457,7 +563,7 @@ export function ProcessDetailDialog({
             </div>
           </div>
 
-          {/* Saídas */}
+          {/* Saídas 
           <div className="space-y-3">
             <div className="flex items-center justify-between border-b border-slate-200 pb-2">
               <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wide flex items-center gap-2">
@@ -506,31 +612,216 @@ export function ProcessDetailDialog({
               )}
             </div>
           </div>
+          */}
+          {/* Entradas */}
+          <div className="space-y-3">
+            <div className="border-b border-slate-200 pb-2">
+              <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+                <ArrowRight size={14} className="rotate-180 text-emerald-600" />
+                Entradas
+              </h4>
+            </div>
 
+            {isExternal ? (
+              <p className="text-sm text-foreground whitespace-pre-wrap py-2 px-1">
+                {process.entradas || "—"}
+              </p>
+            ) : (
+              <textarea
+                id="process-entradas"
+                className={textareaClass}
+                value={editEntradas}
+                onChange={(e) => setEditEntradas(e.target.value)}
+                placeholder="Descreva as entradas do processo..."
+                disabled={!canEdit}
+              />
+            )}
+          </div>
+
+          {/* Atividades */}
+          <div className="space-y-3">
+            <div className="border-b border-slate-200 pb-2">
+              <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+                <ListChecks size={14} className="text-blue-600" />
+                Atividades
+                <span className="text-xs text-red-500 normal-case font-medium">
+                  Obrigatório
+                </span>
+              </h4>
+            </div>
+
+            {isExternal ? (
+              <p className="text-sm text-foreground whitespace-pre-wrap py-2 px-1">
+                {process.atividades || "—"}
+              </p>
+            ) : (
+              <textarea
+                id="process-atividades"
+                className={textareaClass}
+                value={editAtividades}
+                onChange={(e) => setEditAtividades(e.target.value)}
+                placeholder="Descreva as principais atividades do processo..."
+                disabled={!canEdit}
+                required
+              />
+            )}
+          </div>
+
+          {/* Saídas */}
+          <div className="space-y-3">
+            <div className="border-b border-slate-200 pb-2">
+              <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wide flex items-center gap-2">
+                <ArrowRight size={14} className="text-orange-600" />
+                Saídas
+              </h4>
+            </div>
+
+            {isExternal ? (
+              <p className="text-sm text-foreground whitespace-pre-wrap py-2 px-1">
+                {process.saidas || "—"}
+              </p>
+            ) : (
+              <textarea
+                id="process-saidas"
+                className={textareaClass}
+                value={editSaidas}
+                onChange={(e) => setEditSaidas(e.target.value)}
+                placeholder="Descreva as saídas do processo..."
+                disabled={!canEdit}
+              />
+            )}
+          </div>
           {/* Collapsible sections below */}
-          <Section title="Responsáveis" icon={<Users size={14} className="text-slate-500" />} count={process.responsibles.length} defaultOpen>
-            <div className="flex items-center justify-end mb-2">
-              {!isExternal && (
-                <button onClick={() => setAddResponsibleOpen(true)} disabled={!canEdit} className="flex items-center gap-1 text-sm bg-blue-50 border border-blue-200 hover:border-blue-400 hover:text-blue-700 text-blue-600 px-3 py-1.5 rounded-md shadow-sm transition-all disabled:opacity-50 cursor-pointer">
-                  <UserPlus size={14} /> Adicionar
-                </button>
-              )}
-            </div>
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-              {process.responsibles.length > 0 ? process.responsibles.map((r) => (
-                <div key={r.id} className="flex items-center justify-between text-sm bg-white border border-slate-200 px-3 py-2 rounded shadow-sm">
-                  <span className="font-semibold text-slate-800">{r.firstName} {r.lastName}</span>
-                  {!isExternal && process.responsibles.length > 1 && (
-                    <button onClick={() => removeResponsibleMutation.mutate(r.id)} disabled={!canEdit} className="text-slate-300 hover:text-red-500 transition-colors p-1 disabled:opacity-50 cursor-pointer" title="Remover">
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-              )) : (
-                <div className="col-span-full py-8 text-center border-2 border-dashed border-slate-200 rounded-lg text-slate-400">Nenhum responsável associado.</div>
-              )}
-            </div>
-          </Section>
+<Section
+  title="Responsáveis"
+  icon={<Users size={14} className="text-slate-500" />}
+  count={process.formalResponsibles.length}
+  defaultOpen
+>
+  <div className="flex items-center justify-end mb-2">
+    {!isExternal && (
+      <button
+        onClick={() => setAddResponsibleOpen(true)}
+        disabled={!canEdit}
+        className="flex items-center gap-1 text-sm bg-blue-50 border border-blue-200 hover:border-blue-400 hover:text-blue-700 text-blue-600 px-3 py-1.5 rounded-md shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+      >
+        <UserPlus size={14} />
+        Adicionar
+      </button>
+    )}
+  </div>
+
+  <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+    {process.formalResponsibles.length > 0 ? (
+      process.formalResponsibles.map((r) => (
+        <div
+          key={r.humanResourceYearId}
+          className="flex items-center justify-between text-sm bg-white border border-slate-200 px-3 py-2 rounded shadow-sm"
+        >
+          <div className="flex flex-col">
+            <span className="font-semibold text-slate-800">
+              {r.name}
+            </span>
+
+            {(r.function || r.department) && (
+              <span className="text-xs text-slate-400">
+                {[r.function, r.department]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
+            )}
+          </div>
+
+          {!isExternal && (
+            <button
+              onClick={() =>
+                removeFormalResponsibleMutation.mutate(
+                  r.humanResourceYearId
+                )
+              }
+              disabled={
+                !canEdit ||
+                removeFormalResponsibleMutation.isPending
+              }
+              className="text-slate-300 hover:text-red-500 transition-colors p-1 disabled:opacity-50 cursor-pointer"
+              title="Remover"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+      ))
+    ) : (
+      <div className="col-span-full py-8 text-center border-2 border-dashed border-slate-200 rounded-lg text-slate-400">
+        Nenhum responsável formal associado.
+      </div>
+    )}
+  </div>
+</Section>
+
+
+<Section
+  title="Editores"
+  icon={<UserPlus size={14} className="text-blue-600" />}
+  count={process.editors.length}
+  defaultOpen
+>
+  <div className="flex items-center justify-end mb-2">
+    {!isExternal && (
+      <button
+        onClick={() => setAddEditorOpen(true)}
+        disabled={!canEdit}
+        className="flex items-center gap-1 text-sm bg-blue-50 border border-blue-200 hover:border-blue-400 hover:text-blue-700 text-blue-600 px-3 py-1.5 rounded-md shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+      >
+        <UserPlus size={14} />
+        Adicionar
+      </button>
+    )}
+  </div>
+
+  <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+    {process.editors.length > 0 ? (
+      process.editors.map((editor) => (
+        <div
+          key={editor.id}
+          className="flex items-center justify-between text-sm bg-white border border-slate-200 px-3 py-2 rounded shadow-sm"
+        >
+          <div className="flex flex-col">
+            <span className="font-semibold text-slate-800">
+              {editor.firstName} {editor.lastName}
+            </span>
+          </div>
+
+          {!isExternal && (
+            <button
+              onClick={() =>
+                removeEditorMutation.mutate(editor.id)
+              }
+              disabled={
+                !canEdit ||
+                removeEditorMutation.isPending ||
+                process.editors.length <= 1
+              }
+              className="text-slate-300 hover:text-red-500 transition-colors p-1 disabled:opacity-30 cursor-pointer"
+              title={
+                process.editors.length <= 1
+                  ? "O processo deve manter pelo menos um editor"
+                  : "Remover editor"
+              }
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+      ))
+    ) : (
+      <div className="col-span-full py-8 text-center border-2 border-dashed border-slate-200 rounded-lg text-slate-400">
+        Nenhum editor associado.
+      </div>
+    )}
+  </div>
+</Section>
+
 
           <Section title="Departamentos" icon={<Building2 size={14} className="text-slate-500" />} count={process.departments.length} defaultOpen>
             <div className="flex items-center justify-end mb-2">
@@ -743,23 +1034,87 @@ export function ProcessDetailDialog({
               <DialogDescription>Selecione um utilizador para adicionar como responsável.</DialogDescription>
             </DialogHeader>
             <div className="space-y-2 mt-2 max-h-64 overflow-y-auto">
-              {availableUsers.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4">Todos os utilizadores já são responsáveis.</p>
-              )}
-              {availableUsers.map((u) => (
-                <div key={u.id} className="flex items-center justify-between border rounded-lg p-3">
-                  <div>
-                    <p className="font-medium text-sm">{u.firstName} {u.lastName}</p>
-                    <p className="text-xs text-muted-foreground">{u.email}</p>
-                  </div>
-                  <Button size="sm" onClick={() => addResponsibleMutation.mutate(u.id)} disabled={addResponsibleMutation.isPending}>
-                    Adicionar
-                  </Button>
+{availableFormalResponsibles.length === 0 && (
+  <p className="text-sm text-muted-foreground text-center py-4">
+    Sem recursos humanos disponíveis para este processo.
+  </p>
+)}
+
+            {availableFormalResponsibles.map((hr) => (
+              <div
+                key={hr.hryId}
+                className="flex items-center justify-between border rounded-lg p-3"
+              >
+                <div>
+                  <p className="font-medium text-sm">{hr.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {[hr.function, hr.departmentName]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
                 </div>
-              ))}
+
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    addFormalResponsibleMutation.mutate(hr.hryId)
+                  }
+                  disabled={addFormalResponsibleMutation.isPending}
+                >
+                  Adicionar
+                </Button>
+              </div>
+            ))}
             </div>
           </DialogContent>
         </Dialog>
+        {/* Add Editor Dialog */}
+
+        <Dialog open={addEditorOpen} onOpenChange={setAddEditorOpen}>
+  <DialogContent className="sm:max-w-sm">
+    <DialogHeader>
+      <DialogTitle>Adicionar Editor</DialogTitle>
+      <DialogDescription>
+        Selecione um utilizador autorizado a editar este processo.
+      </DialogDescription>
+    </DialogHeader>
+
+    <div className="space-y-2 mt-2 max-h-64 overflow-y-auto">
+      {availableEditors.length === 0 && (
+        <p className="text-sm text-muted-foreground text-center py-4">
+          Todos os utilizadores disponíveis já são editores.
+        </p>
+      )}
+
+      {availableEditors.map((u) => (
+        <div
+          key={u.id}
+          className="flex items-center justify-between border rounded-lg p-3"
+        >
+          <div>
+            <p className="font-medium text-sm">
+              {u.firstName} {u.lastName}
+            </p>
+
+            <p className="text-xs text-muted-foreground">
+              {u.email}
+            </p>
+          </div>
+
+          <Button
+            size="sm"
+            onClick={() =>
+              addEditorMutation.mutate(u.id)
+            }
+            disabled={addEditorMutation.isPending}
+          >
+            Adicionar
+          </Button>
+        </div>
+      ))}
+    </div>
+  </DialogContent>
+</Dialog>
 
         {/* Add Department Dialog */}
         <Dialog open={addDeptOpen} onOpenChange={setAddDeptOpen}>
