@@ -28,6 +28,7 @@ import type {
   CreateImprovementActionRequest,
   UpdateImprovementActionRequest,
   UpdateImprovementOpportunityYearRequest,
+  MacroProcessDiagramResponse
 } from "@/types.ts";
 
 export const getMacroProcessHierarchy = async (yearId: number): Promise<ProcessHierarchyResponse> => {
@@ -86,18 +87,27 @@ export const associateProcessYearsFull = async (
   await api.post(`/processes/${processId}/years/full`, { yearIds });
 };
 
-export const updateProcess = async (id: number, data: { name?: string; objective?: string }) => {
+export const updateProcess = async (
+  id: number,
+  data: {
+    name?: string;
+    objective?: string;
+    entradas?: string;
+    atividades?: string;
+    saidas?: string;
+  },
+) => {
   const res = await api.patch(`/processes/${id}`, data);
   return res.data;
 };
-
-export const addProcessResponsible = async (processId: number, userId: number) => {
-  await api.post(`/processes/${processId}/responsibles`, { userId });
+/*
+export const addProcessEditor = async (processId: number, userId: number) => {
+  await api.post(`/processes/${processId}/editors`, { userId });
 };
 
-export const removeProcessResponsible = async (processId: number, userId: number) => {
-  await api.delete(`/processes/${processId}/responsibles/${userId}`);
-};
+export const removeProcessEditor = async (processId: number, userId: number) => {
+  await api.delete(`/processes/${processId}/editors/${userId}`);
+};*/
 
 export const addProcessDepartment = async (processId: number, departmentId: number) => {
   await api.post(`/processes/${processId}/departments`, { departmentId });
@@ -370,6 +380,47 @@ export const createYear = async (data: { year: number }): Promise<YearResponse> 
 
 export const deleteYear = async (id: number): Promise<void> => {
   await api.delete(`/years/${id}`);
+};
+
+export const getMacroProcessDiagram = async (
+  yearId: number,
+): Promise<MacroProcessDiagramResponse> => {
+  const res = await api.get(`/years/${yearId}/macroprocess-diagram`);
+  return res.data;
+};
+
+export const uploadMacroProcessDiagram = async (
+  yearId: number,
+  file: File,
+  version: number,
+  uploadedById: number,
+  existingDocumentId?: number | null,
+): Promise<MacroProcessDiagramResponse> => {
+  const formData = new FormData();
+
+  const data = JSON.stringify({
+    documentId: existingDocumentId ?? null,
+    versioned: true,
+    version,
+    requiresApproval: true,
+    uploadedById,
+  });
+
+  formData.append(
+    "data",
+    new Blob([data], { type: "application/json" }),
+  );
+  formData.append("file", file);
+
+  const res = await api.post(
+    `/years/${yearId}/macroprocess-diagram`,
+    formData,
+    {
+      headers: { "Content-Type": "multipart/form-data" },
+    },
+  );
+
+  return res.data;
 };
 
 /* LEADERSHIP COMMITMENT (5.1) */
@@ -1360,4 +1411,34 @@ export const getMyYears = async (): Promise<YearResponse[]> => {
   return res.data;
 };
 
+export const addProcessFormalResponsible = async (
+  processYearId: number,
+  humanResourceYearId: number,
+): Promise<void> => {
+  await api.post(
+    `/processes/process-year/${processYearId}/formal-responsibles/${humanResourceYearId}`
+  );
+};
 
+export const removeProcessFormalResponsible = async (
+  processYearId: number,
+  humanResourceYearId: number,
+): Promise<void> => {
+  await api.delete(
+    `/processes/process-year/${processYearId}/formal-responsibles/${humanResourceYearId}`
+  );
+};
+
+export const addProcessEditor = async (
+  processId: number,
+  userId: number,
+): Promise<void> => {
+  await api.post(`/processes/${processId}/editors`, { userId });
+};
+
+export const removeProcessEditor = async (
+  processId: number,
+  userId: number,
+): Promise<void> => {
+  await api.delete(`/processes/${processId}/editors/${userId}`);
+};

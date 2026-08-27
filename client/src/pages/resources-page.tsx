@@ -104,12 +104,11 @@ export default function ResourcesPage() {
   const [personForm, setPersonForm] = useState<CreateHumanResourceRequest>({
     name: "",
     function: "",
-    department: "",
+    departmentId: null,
     yearIds: [],
   });
   const [personIsActive, setPersonIsActive] = useState(true);
-  const [initialPersonForm, setInitialPersonForm] = useState<{ name: string; function: string; department: string; isActive: boolean } | null>(null);
-  const [personDeptIsCustom, setPersonDeptIsCustom] = useState(false);
+  const [initialPersonForm, setInitialPersonForm] = useState<{ name: string; function: string;  departmentId: number | null; isActive: boolean } | null>(null);
   const [isSubmittingPerson, setIsSubmittingPerson] = useState(false);
   const [confirmDeletePersonId, setConfirmDeletePersonId] = useState<number | null>(null);
   const [yearDialogPersonId, setYearDialogPersonId] = useState<number | null>(null);
@@ -460,24 +459,38 @@ export default function ResourcesPage() {
   function openPersonModal(person?: HumanResourceResponse) {
     if (person) {
       setEditPersonId(person.id);
+
       setPersonForm({
         name: person.name,
         function: person.function,
-        department: person.department,
+        departmentId: person.departmentId,
         yearIds: [],
       });
+
       setPersonIsActive(person.isActive);
-      setInitialPersonForm({ name: person.name, function: person.function, department: person.department, isActive: person.isActive });
-      setPersonDeptIsCustom(person.department ? !departments.some(d => d.name === person.department) : false);
+
+      setInitialPersonForm({
+        name: person.name,
+        function: person.function,
+        departmentId: person.departmentId,
+        isActive: person.isActive,
+      });
     } else {
       setEditPersonId(null);
-      setPersonForm({ name: "", function: "", department: "", yearIds: [] });
+
+      setPersonForm({
+        name: "",
+        function: "",
+        departmentId: null,
+        yearIds: [],
+      });
+
       setPersonIsActive(true);
       setInitialPersonForm(null);
-      setPersonDeptIsCustom(false);
     }
+
     setPersonModalOpen(true);
-  }
+}
 
   function closePersonModal() {
     setPersonModalOpen(false);
@@ -485,7 +498,6 @@ export default function ResourcesPage() {
     setPersonIsActive(true);
     setNewCompName("");
     setNewCompDetails("");
-    setPersonDeptIsCustom(false);
   }
 
   function handleSavePerson() {
@@ -493,8 +505,8 @@ export default function ResourcesPage() {
     if (editPersonId && initialPersonForm) {
       const nameChanged = personForm.name.trim() !== initialPersonForm.name;
       const funcChanged = personForm.function.trim() !== initialPersonForm.function;
-      const deptChanged = personForm.department.trim() !== initialPersonForm.department;
-      const activeChanged = personIsActive !== initialPersonForm.isActive;
+      const deptChanged =
+        personForm.departmentId !== initialPersonForm.departmentId;      const activeChanged = personIsActive !== initialPersonForm.isActive;
       if (!nameChanged && !funcChanged && !deptChanged && !activeChanged) {
         closePersonModal();
         return;
@@ -508,7 +520,7 @@ export default function ResourcesPage() {
           data: {
             name: personForm.name.trim(),
             function: personForm.function.trim(),
-            department: personForm.department.trim(),
+            departmentId: personForm.departmentId,
             yearId: effectiveYearId ?? undefined,
             isActive: personIsActive,
           },
@@ -1144,40 +1156,38 @@ export default function ResourcesPage() {
             </div>
             <div className="grid gap-2">
               <Label>Departamento</Label>
-              {ro ? <p className="text-sm text-foreground py-2 px-1">{personForm.department || '-'}</p>
-              : <>
+
+              {ro ? (
+                <p className="text-sm text-foreground py-2 px-1">
+                  {departments.find(d => d.id === personForm.departmentId)?.name ?? "-"}
+                </p>
+              ) : (
                 <Select
-                  value={personDeptIsCustom ? "OUTRO" : personForm.department}
-                  onValueChange={val => {
-                    if (val === "OUTRO") {
-                      setPersonDeptIsCustom(true);
-                      setPersonForm(p => ({ ...p, department: "" }));
-                    } else {
-                      setPersonDeptIsCustom(false);
-                      setPersonForm(p => ({ ...p, department: val }));
-                    }
-                  }}
+                  value={
+                    personForm.departmentId != null
+                      ? String(personForm.departmentId)
+                      : undefined
+                  }
+                  onValueChange={val =>
+                    setPersonForm(p => ({
+                      ...p,
+                      departmentId: Number(val),
+                    }))
+                  }
                 >
                   <SelectTrigger className="w-full rounded-xl font-normal shadow-sm border-border">
                     <SelectValue placeholder="Selecionar departamento" />
                   </SelectTrigger>
+
                   <SelectContent>
                     {departments.map(d => (
-                      <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>
+                      <SelectItem key={d.id} value={String(d.id)}>
+                        {d.name}
+                      </SelectItem>
                     ))}
-                    <SelectItem value="OUTRO">Outro</SelectItem>
                   </SelectContent>
                 </Select>
-                {personDeptIsCustom && (
-                  <input
-                    type="text"
-                    value={personForm.department}
-                    onChange={e => setPersonForm(p => ({ ...p, department: e.target.value }))}
-                    className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 mt-2"
-                    placeholder="Digite o departamento"
-                  />
-                )}
-              </>}
+              )}
             </div>
             {editPersonId && (
               ro ? <p className="text-sm text-foreground py-2 px-1">Ativo: {personIsActive ? "Sim" : "Não"}</p>
