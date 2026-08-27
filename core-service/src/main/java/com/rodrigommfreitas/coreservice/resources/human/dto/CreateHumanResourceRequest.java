@@ -6,6 +6,6 @@ import java.util.Set;
 public record CreateHumanResourceRequest(
         String name,
         String function,
-        String department,
+        Long departmentId,
         Set<Long> yearIds
 ) {}

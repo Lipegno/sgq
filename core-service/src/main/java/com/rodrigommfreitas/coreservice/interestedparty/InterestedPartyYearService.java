@@ -5,7 +5,6 @@ import com.rodrigommfreitas.coreservice.document.DocumentRepository;
 import com.rodrigommfreitas.coreservice.indicator.IndicatorYear;
 import com.rodrigommfreitas.coreservice.indicator.IndicatorYearRepository;
 import com.rodrigommfreitas.coreservice.interestedparty.dto.AssociateProcessesRequest;
-import com.rodrigommfreitas.coreservice.interestedparty.dto.InterestedPartyResponse;
 import com.rodrigommfreitas.coreservice.interestedparty.dto.UpdateInterestedPartyRequest;
 import com.rodrigommfreitas.coreservice.log.ActionType;
 import com.rodrigommfreitas.coreservice.log.EntityType;
@@ -222,7 +221,7 @@ public class InterestedPartyYearService {
                 throw new RuntimeException("ProcessYear must belong to the same year as InterestedPartyYear");
             }
 
-            boolean isResponsible = processYear.getProcess().getResponsibles().stream()
+            boolean isResponsible = processYear.getProcess().getEditors().stream()
                     .anyMatch(r -> r.getId().equals(currentUserId));
             if (!isResponsible && !isSuperAdmin) {
                 throw new RuntimeException("Apenas os responsáveis do processo podem editar associações");
@@ -264,7 +263,7 @@ public class InterestedPartyYearService {
             ProcessYear processYear = processYearRepository.findById(processYearId)
                     .orElseThrow(() -> new RuntimeException("ProcessYear not found: " + processYearId));
 
-            boolean isResponsible = processYear.getProcess().getResponsibles().stream()
+            boolean isResponsible = processYear.getProcess().getEditors().stream()
                     .anyMatch(r -> r.getId().equals(currentUserId));
             if (!isResponsible && !isSuperAdmin) {
                 throw new RuntimeException("Apenas os responsáveis do processo podem editar associações");

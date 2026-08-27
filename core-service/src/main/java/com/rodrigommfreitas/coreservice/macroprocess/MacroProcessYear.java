@@ -1,5 +1,6 @@
 package com.rodrigommfreitas.coreservice.macroprocess;
 
+import com.rodrigommfreitas.coreservice.document.Document;
 import com.rodrigommfreitas.coreservice.process.ProcessYear;
 import com.rodrigommfreitas.coreservice.year.Year;
 import jakarta.persistence.*;
@@ -34,5 +35,9 @@ public class MacroProcessYear {
     @OneToMany(mappedBy = "macroProcessYear", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private Set<ProcessYear> processes = new HashSet<>();
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "macro_process_diagram_document_id")
+    private Document macroProcessDiagram;
 
 }

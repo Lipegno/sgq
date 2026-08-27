@@ -209,7 +209,7 @@ public class IndicatorService {
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         boolean isSuperAdmin = currentUser.getRoles().contains(Role.ROLE_SUPERADMIN);
-        boolean isResponsible = processYear.getProcess().getResponsibles().stream()
+        boolean isResponsible = processYear.getProcess().getEditors().stream()
                 .anyMatch(r -> r.getId().equals(currentUserId));
         if (!isResponsible && !isSuperAdmin) {
             throw new RuntimeException("Apenas os responsáveis do processo podem editar associações");
@@ -257,7 +257,7 @@ public class IndicatorService {
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         boolean isSuperAdmin = currentUser.getRoles().contains(Role.ROLE_SUPERADMIN);
-        boolean isResponsible = processYear.getProcess().getResponsibles().stream()
+        boolean isResponsible = processYear.getProcess().getEditors().stream()
                 .anyMatch(r -> r.getId().equals(currentUserId));
         if (!isResponsible && !isSuperAdmin) {
             throw new RuntimeException("Apenas os responsáveis do processo podem editar associações");
@@ -326,7 +326,7 @@ public class IndicatorService {
             if (!processYear.getYear().getId().equals(indicatorYear.getYear().getId())) {
                 throw new RuntimeException("Process and Indicator must belong to the same year");
             }
-            boolean isResponsible = processYear.getProcess().getResponsibles().stream()
+            boolean isResponsible = processYear.getProcess().getEditors().stream()
                     .anyMatch(r -> r.getId().equals(currentUserId));
             if (!isResponsible && !isSuperAdmin) {
                 throw new RuntimeException("Apenas os responsáveis do processo podem editar associações");
@@ -370,7 +370,7 @@ public class IndicatorService {
         for (Long processYearId : request.processYearIds()) {
             ProcessYear processYear = processYearRepository.findById(processYearId)
                     .orElseThrow(() -> new RuntimeException("ProcessYear not found: " + processYearId));
-            boolean isResponsible = processYear.getProcess().getResponsibles().stream()
+            boolean isResponsible = processYear.getProcess().getEditors().stream()
                     .anyMatch(r -> r.getId().equals(currentUserId));
             if (!isResponsible && !isSuperAdmin) {
                 throw new RuntimeException("Apenas os responsáveis do processo podem editar associações");

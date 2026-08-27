@@ -21,6 +21,8 @@ import com.rodrigommfreitas.coreservice.macroprocess.MacroProcessYearRepository;
 import com.rodrigommfreitas.coreservice.process.dto.*;
 import com.rodrigommfreitas.coreservice.qualityobjective.QualityObjectiveYear;
 import com.rodrigommfreitas.coreservice.qualityobjective.QualityObjectiveYearRepository;
+import com.rodrigommfreitas.coreservice.resources.human.HumanResourceYear;
+import com.rodrigommfreitas.coreservice.resources.human.HumanResourceYearRepository;
 import com.rodrigommfreitas.coreservice.riskopportunity.RiskOpportunityYear;
 import com.rodrigommfreitas.coreservice.riskopportunity.RiskOpportunityYearRepository;
 import com.rodrigommfreitas.coreservice.security.UserContextHolder;
@@ -45,6 +47,8 @@ public class ProcessService {
     private final ProcessYearRepository processYearRepository;
     private final MacroProcessYearRepository macroProcessYearRepository;
     private final YearRepository yearRepository;
+    private final HumanResourceYearRepository humanResourceYearRepository;
+
     private final LogService logService;
     private final LogDetailsBuilder logDetailsBuilder;
     private final UserRepository userRepository;
@@ -87,13 +91,16 @@ Set<Department> departments = new HashSet<>();
                     Process newProcess = new Process();
                     newProcess.setName(request.name());
                     newProcess.setObjective(request.objective());
+                    newProcess.setEntradas(request.entradas());
+                    newProcess.setSaidas(request.saidas());
+                    newProcess.setAtividades(request.atividades());
                     if (request.fichaDocumentoId() != null) {
                         Document fichaDoc = documentRepository.findById(request.fichaDocumentoId())
                                 .orElseThrow(() -> new RuntimeException("Document not found: " + request.fichaDocumentoId()));
                         newProcess.setFichaDocumento(fichaDoc);
                     }
                     newProcess.setDepartments(departments);
-                    newProcess.setResponsibles(new HashSet<>(Set.of(currentUser)));
+                    newProcess.setEditors(new HashSet<>(Set.of(currentUser)));
                     return processRepository.save(newProcess);
                 });
 
@@ -117,6 +124,22 @@ Set<Department> departments = new HashSet<>();
         Map<String, Object> fields = new LinkedHashMap<>();
         fields.put("name", process.getName());
         fields.put("yearId", year.getYear());
+
+        if (process.getObjective() != null) {
+            fields.put("objective", process.getObjective());
+        }
+
+        if (process.getEntradas() != null) {
+            fields.put("entradas", process.getEntradas());
+        }
+
+        if (process.getSaidas() != null) {
+            fields.put("saidas", process.getSaidas());
+        }
+        if(process.getAtividades() != null) {
+            fields.put("atividades", process.getAtividades());
+        }
+
         JsonNode detailsNode = logDetailsBuilder.buildCreated(fields);
         logService.createLog(new CreateLogRequest(
                 userId,
@@ -328,7 +351,7 @@ Set<Department> departments = new HashSet<>();
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         boolean isSuperAdmin = currentUser.getRoles().contains(Role.ROLE_SUPERADMIN);
-        boolean isResponsible = process.getResponsibles().stream()
+        boolean isResponsible = process.getEditors().stream()
                 .anyMatch(r -> r.getId().equals(currentUserId));
         if (!isResponsible && !isSuperAdmin) {
             throw new RuntimeException("Apenas os responsáveis do processo podem editá-lo");
@@ -347,6 +370,30 @@ Set<Department> departments = new HashSet<>();
             oldFields.put("objective", process.getObjective());
             newFields.put("objective", request.objective());
             process.setObjective(request.objective());
+        }
+
+        if (request.entradas() != null && !request.entradas().equals(process.getEntradas())) {
+            oldFields.put("entradas", process.getEntradas());
+            newFields.put("entradas", request.entradas());
+            process.setEntradas(request.entradas());
+        }
+
+        if (request.saidas() != null && !request.saidas().equals(process.getSaidas())) {
+            oldFields.put("saidas", process.getSaidas());
+            newFields.put("saidas", request.saidas());
+            process.setSaidas(request.saidas());
+        }
+
+        if (request.atividades() != null) {
+            if (request.atividades().isBlank()) {
+                throw new IllegalArgumentException("As atividades são obrigatórias");
+            }
+
+            if (!request.atividades().equals(process.getAtividades())) {
+                oldFields.put("atividades", process.getAtividades());
+                newFields.put("atividades", request.atividades());
+                process.setAtividades(request.atividades());
+            }
         }
 
         if (request.fichaDocumentoId() != null) {
@@ -375,7 +422,7 @@ Set<Department> departments = new HashSet<>();
     }
 
     @Transactional
-    public void addResponsible(Long processId, Long userId) {
+    public void addEditor(Long processId, Long userId) {
         Process process = processRepository.findById(processId)
                 .orElseThrow(() -> new RuntimeException("Process not found"));
         User user = userRepository.findById(userId)
@@ -385,7 +432,7 @@ Set<Department> departments = new HashSet<>();
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         boolean isSuperAdmin = currentUser.getRoles().contains(Role.ROLE_SUPERADMIN);
-        boolean isCurrentResponsible = process.getResponsibles().stream()
+        boolean isCurrentResponsible = process.getEditors().stream()
                 .anyMatch(r -> r.getId().equals(currentUserId));
         if (!isCurrentResponsible && !isSuperAdmin) {
             throw new RuntimeException("Apenas os responsáveis do processo podem adicionar novos responsáveis");
@@ -395,13 +442,13 @@ Set<Department> departments = new HashSet<>();
                 .map(Department::getId)
                 .collect(java.util.stream.Collectors.toSet());
 
-        boolean userInDept = userDepartmentRepository.findByUserId(userId)
+        /*boolean userInDept = userDepartmentRepository.findByUserId(userId)
                 .stream().anyMatch(ud -> deptIds.contains(ud.getDepartment().getId()));
         if (!userInDept) {
             throw new RuntimeException("O utilizador deve pertencer a um dos departamentos do processo");
-        }
+        }*/
 
-        process.getResponsibles().add(user);
+        process.getEditors().add(user);
         processRepository.save(process);
 
         logService.createLog(new CreateLogRequest(
@@ -417,39 +464,37 @@ Set<Department> departments = new HashSet<>();
     }
 
     @Transactional
-    public void removeResponsible(Long processId, Long userId) {
+    public void removeEditor(Long processId, Long userId) {
         Process process = processRepository.findById(processId)
                 .orElseThrow(() -> new RuntimeException("Process not found"));
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         Long currentUserId = UserContextHolder.getUserId();
+
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        boolean isSuperAdmin = currentUser.getRoles().contains(Role.ROLE_SUPERADMIN);
-        boolean isCurrentResponsible = process.getResponsibles().stream()
-                .anyMatch(r -> r.getId().equals(currentUserId));
-        if (!isCurrentResponsible && !isSuperAdmin) {
-            throw new RuntimeException("Apenas os responsáveis do processo podem remover responsáveis");
+
+        boolean isSuperAdmin =
+                currentUser.getRoles().contains(Role.ROLE_SUPERADMIN);
+
+        boolean isCurrentEditor = process.getEditors().stream()
+                .anyMatch(e -> e.getId().equals(currentUserId));
+
+        if (!isCurrentEditor && !isSuperAdmin) {
+            throw new RuntimeException(
+                    "Apenas os editores do processo podem remover editores"
+            );
         }
 
-        if (process.getResponsibles().size() <= 1) {
-            throw new RuntimeException("O processo deve ter pelo menos um responsável");
+        if (process.getEditors().size() <= 1) {
+            throw new RuntimeException(
+                    "O processo deve ter pelo menos um editor"
+            );
         }
 
-        process.getResponsibles().remove(user);
-        processRepository.save(process);
-
-        logService.createLog(new CreateLogRequest(
-                currentUserId,
-                EntityType.PROCESS,
-                processId,
-                null,
-                null,
-                process.getName(),
-                ActionType.UPDATED,
-                logDetailsBuilder.buildAssociation("responsible", user.getFirstName() + " " + user.getLastName(), "DISASSOCIATED")
-        ));
+        process.getEditors().remove(user);
     }
 
     @Transactional
@@ -463,7 +508,7 @@ Set<Department> departments = new HashSet<>();
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         boolean isSuperAdmin = currentUser.getRoles().contains(Role.ROLE_SUPERADMIN);
-        boolean isResponsible = process.getResponsibles().stream()
+        boolean isResponsible = process.getEditors().stream()
                 .anyMatch(r -> r.getId().equals(currentUserId));
         if (!isResponsible && !isSuperAdmin) {
             throw new RuntimeException("Apenas os responsáveis do processo podem gerir departamentos");
@@ -495,7 +540,7 @@ Set<Department> departments = new HashSet<>();
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         boolean isSuperAdmin = currentUser.getRoles().contains(Role.ROLE_SUPERADMIN);
-        boolean isResponsible = process.getResponsibles().stream()
+        boolean isResponsible = process.getEditors().stream()
                 .anyMatch(r -> r.getId().equals(currentUserId));
         if (!isResponsible && !isSuperAdmin) {
             throw new RuntimeException("Apenas os responsáveis do processo podem gerir departamentos");
@@ -573,7 +618,7 @@ Set<Department> departments = new HashSet<>();
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         boolean isSuperAdmin = currentUser.getRoles().contains(Role.ROLE_SUPERADMIN);
-        boolean isResponsible = process.getResponsibles().stream()
+        boolean isResponsible = process.getEditors().stream()
                 .anyMatch(r -> r.getId().equals(currentUserId));
 
         if (!isResponsible && !isSuperAdmin) {
@@ -669,7 +714,7 @@ Set<Department> departments = new HashSet<>();
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         boolean isSuperAdmin = currentUser.getRoles().contains(Role.ROLE_SUPERADMIN);
-        boolean isResponsible = process.getResponsibles().stream()
+        boolean isResponsible = process.getEditors().stream()
                 .anyMatch(r -> r.getId().equals(currentUserId));
         if (!isResponsible && !isSuperAdmin) {
             throw new RuntimeException("Apenas os responsáveis do processo podem editá-lo");
@@ -701,7 +746,7 @@ Set<Department> departments = new HashSet<>();
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         boolean isSuperAdmin = currentUser.getRoles().contains(Role.ROLE_SUPERADMIN);
-        boolean isResponsible = process.getResponsibles().stream()
+        boolean isResponsible = process.getEditors().stream()
                 .anyMatch(r -> r.getId().equals(currentUserId));
         if (!isResponsible && !isSuperAdmin) {
             throw new RuntimeException("Apenas os responsáveis do processo podem editá-lo");
@@ -735,7 +780,7 @@ Set<Department> departments = new HashSet<>();
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         boolean isSuperAdmin = currentUser.getRoles().contains(Role.ROLE_SUPERADMIN);
-        boolean isResponsible = process.getResponsibles().stream()
+        boolean isResponsible = process.getEditors().stream()
                 .anyMatch(r -> r.getId().equals(currentUserId));
         if (!isResponsible && !isSuperAdmin) {
             throw new RuntimeException("Apenas os responsáveis do processo podem editá-lo");
@@ -767,7 +812,7 @@ Set<Department> departments = new HashSet<>();
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         boolean isSuperAdmin = currentUser.getRoles().contains(Role.ROLE_SUPERADMIN);
-        boolean isResponsible = process.getResponsibles().stream()
+        boolean isResponsible = process.getEditors().stream()
                 .anyMatch(r -> r.getId().equals(currentUserId));
         if (!isResponsible && !isSuperAdmin) {
             throw new RuntimeException("Apenas os responsáveis do processo podem editá-lo");
@@ -799,7 +844,7 @@ Set<Department> departments = new HashSet<>();
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         boolean isSuperAdmin = currentUser.getRoles().contains(Role.ROLE_SUPERADMIN);
-        boolean isResponsible = process.getResponsibles().stream()
+        boolean isResponsible = process.getEditors().stream()
                 .anyMatch(r -> r.getId().equals(currentUserId));
         if (!isResponsible && !isSuperAdmin) {
             throw new RuntimeException("Apenas os responsáveis do processo podem editá-lo");
@@ -833,7 +878,7 @@ Set<Department> departments = new HashSet<>();
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         boolean isSuperAdmin = currentUser.getRoles().contains(Role.ROLE_SUPERADMIN);
-        boolean isResponsible = process.getResponsibles().stream()
+        boolean isResponsible = process.getEditors().stream()
                 .anyMatch(r -> r.getId().equals(currentUserId));
         if (!isResponsible && !isSuperAdmin) {
             throw new RuntimeException("Apenas os responsáveis do processo podem editá-lo");
@@ -865,7 +910,7 @@ Set<Department> departments = new HashSet<>();
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         boolean isSuperAdmin = currentUser.getRoles().contains(Role.ROLE_SUPERADMIN);
-        boolean isResponsible = process.getResponsibles().stream()
+        boolean isResponsible = process.getEditors().stream()
                 .anyMatch(r -> r.getId().equals(currentUserId));
         if (!isResponsible && !isSuperAdmin) {
             throw new RuntimeException("Apenas os responsáveis do processo podem editá-lo");
@@ -905,7 +950,7 @@ Set<Department> departments = new HashSet<>();
         User currentUser = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         boolean isSuperAdmin = currentUser.getRoles().contains(Role.ROLE_SUPERADMIN);
-        boolean isResponsible = process.getResponsibles().stream()
+        boolean isResponsible = process.getEditors().stream()
                 .anyMatch(r -> r.getId().equals(currentUserId));
         if (!isResponsible && !isSuperAdmin) {
             throw new RuntimeException("Apenas os responsáveis do processo podem editá-lo");
@@ -929,7 +974,7 @@ Set<Department> departments = new HashSet<>();
     }
 
     private ProcessResponse mapToResponse(Process process) {
-        List<UserSummary> responsibles = process.getResponsibles().stream()
+        List<UserSummary> responsibles = process.getEditors().stream()
                 .map(userRefService::fromEntity)
                 .toList();
         List<DepartmentResponse> departments = process.getDepartments().stream()
@@ -943,6 +988,9 @@ Set<Department> departments = new HashSet<>();
                 process.getId(),
                 process.getName(),
                 process.getObjective(),
+                process.getEntradas(),
+                process.getAtividades(),
+                process.getSaidas(),
                 process.getEntradasDocumentos().stream().map(this::mapDocSummary).toList(),
                 process.getSaidasDocumentos().stream().map(this::mapDocSummary).toList(),
                 mapDocSummary(process.getFichaDocumento()),
@@ -975,4 +1023,69 @@ Set<Department> departments = new HashSet<>();
                 uploadedAt
         );
     }
+
+    @Transactional
+    public void addFormalResponsible(
+            Long processYearId,
+            Long humanResourceYearId
+    ) {
+        ProcessYear processYear = processYearRepository.findById(processYearId)
+                .orElseThrow(() -> new RuntimeException("ProcessYear not found"));
+
+        HumanResourceYear humanResourceYear =
+                humanResourceYearRepository.findById(humanResourceYearId)
+                        .orElseThrow(() -> new RuntimeException("HumanResourceYear not found"));
+
+        if (!humanResourceYear.getYear().getId().equals(processYear.getYear().getId())) {
+            throw new IllegalArgumentException(
+                    "O responsável tem de estar associado ao mesmo ano do processo"
+            );
+        }
+
+        if (!humanResourceYear.isActive()) {
+            throw new IllegalArgumentException(
+                    "O recurso humano selecionado não está ativo neste ano"
+            );
+        }
+
+        Department responsibleDepartment =
+                humanResourceYear.getHumanResource().getDepartment();
+
+        if (responsibleDepartment == null) {
+            throw new IllegalArgumentException(
+                    "O responsável selecionado não tem departamento associado"
+            );
+        }
+
+        boolean belongsToProcessDepartment =
+                processYear.getProcess()
+                        .getDepartments()
+                        .stream()
+                        .anyMatch(d -> d.getId().equals(responsibleDepartment.getId()));
+
+        if (!belongsToProcessDepartment) {
+            throw new IllegalArgumentException(
+                    "O responsável tem de pertencer a um dos departamentos associados ao processo"
+            );
+        }
+
+        processYear.getResponsibles().add(humanResourceYear);
+    }
+
+    @Transactional
+    public void removeFormalResponsible(
+            Long processYearId,
+            Long humanResourceYearId
+    ) {
+        ProcessYear processYear = processYearRepository.findById(processYearId)
+                .orElseThrow(() -> new RuntimeException("ProcessYear not found"));
+
+        HumanResourceYear humanResourceYear =
+                humanResourceYearRepository.findById(humanResourceYearId)
+                        .orElseThrow(() -> new RuntimeException("HumanResourceYear not found"));
+
+        processYear.getResponsibles().remove(humanResourceYear);
+    }
+
+
 }

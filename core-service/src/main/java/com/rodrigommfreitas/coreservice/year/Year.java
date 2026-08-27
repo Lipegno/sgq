@@ -1,5 +1,6 @@
 package com.rodrigommfreitas.coreservice.year;
 
+import com.rodrigommfreitas.coreservice.document.Document;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -19,4 +20,7 @@ public class Year {
     @Column(name="year_value", nullable = false, unique = true)
     private Integer year;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "macro_process_diagram_document_id")
+    private Document macroProcessDiagram;
 }

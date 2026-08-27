@@ -1,5 +1,6 @@
 package com.rodrigommfreitas.coreservice.resources.human;
 
+import com.rodrigommfreitas.coreservice.department.Department;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,7 +21,10 @@ public class HumanResource {
 
     private String name;
     private String function;
-    private String department;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "department_id")
+    private Department department;
 
     @OneToMany(mappedBy = "humanResource", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

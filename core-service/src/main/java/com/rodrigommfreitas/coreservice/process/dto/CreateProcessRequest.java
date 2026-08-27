@@ -11,5 +11,8 @@ public record CreateProcessRequest(
         Long fichaDocumentoId,
         List<Long> departmentIds,
         @NotNull Long yearId,
-        Long macroProcessYearId
+        Long macroProcessYearId,
+        String entradas,
+        String atividades,
+        String saidas
 ) {}

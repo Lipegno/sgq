@@ -9,6 +9,7 @@ import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -37,12 +38,14 @@ public class DocumentController {
 
     @ResponseStatus(HttpStatus.OK)
     @PostMapping("/versions/{versionId}/approve")
+    @PreAuthorize("hasRole('SUPERADMIN')")
     public void approve(@PathVariable Long versionId) {
         documentVersionService.approveVersion(versionId);
     }
 
     @DeleteMapping("/{documentId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('SUPERADMIN')")
     public void delete(@PathVariable Long documentId) {
         documentService.deleteDocument(documentId);
     }
@@ -74,6 +77,7 @@ public class DocumentController {
     }
 
     @DeleteMapping("/versions/{versionId}")
+    @PreAuthorize("hasRole('SUPERADMIN')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteVersion(@PathVariable Long versionId) {
         documentVersionService.deleteVersion(versionId);

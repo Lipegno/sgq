@@ -7,6 +7,7 @@ import com.rodrigommfreitas.coreservice.process.dto.*;
 import com.rodrigommfreitas.coreservice.year.dto.AssociateYearsRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -31,15 +32,15 @@ public class ProcessController {
         return ResponseEntity.ok(processService.updateProcess(id, request));
     }
 
-    @PostMapping("/{processId}/responsibles")
-    public ResponseEntity<Void> addResponsible(@PathVariable Long processId, @RequestBody ResponsibleRequest request) {
-        processService.addResponsible(processId, request.userId());
+    @PostMapping("/{processId}/editors")
+    public ResponseEntity<Void> addResponsible(@PathVariable Long processId, @RequestBody EditorRequest request) {
+        processService.addEditor(processId, request.userId());
         return ResponseEntity.ok().build();
     }
 
-    @DeleteMapping("/{processId}/responsibles/{userId}")
+    @DeleteMapping("/{processId}/editors/{userId}")
     public ResponseEntity<Void> removeResponsible(@PathVariable Long processId, @PathVariable Long userId) {
-        processService.removeResponsible(processId, userId);
+        processService.removeEditor(processId, userId);
         return ResponseEntity.ok().build();
     }
 
@@ -172,5 +173,29 @@ public class ProcessController {
     public ResponseEntity<Void> removeSaidasDocumento(@PathVariable Long processId, @PathVariable Long documentId) {
         processService.removeSaidasDocumento(processId, documentId);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/process-year/{processYearId}/formal-responsibles/{humanResourceYearId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void addFormalResponsible(
+            @PathVariable Long processYearId,
+            @PathVariable Long humanResourceYearId
+    ) {
+        processService.addFormalResponsible(
+                processYearId,
+                humanResourceYearId
+        );
+    }
+
+    @DeleteMapping("/process-year/{processYearId}/formal-responsibles/{humanResourceYearId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removeFormalResponsible(
+            @PathVariable Long processYearId,
+            @PathVariable Long humanResourceYearId
+    ) {
+        processService.removeFormalResponsible(
+                processYearId,
+                humanResourceYearId
+        );
     }
 }

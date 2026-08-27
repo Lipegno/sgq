@@ -1,6 +1,5 @@
 package com.rodrigommfreitas.coreservice.qualityobjective;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.rodrigommfreitas.coreservice.indicator.IndicatorYear;
 import com.rodrigommfreitas.coreservice.indicator.IndicatorYearRepository;
 import com.rodrigommfreitas.coreservice.log.ActionType;
@@ -486,7 +485,7 @@ entityName + " — " + String.valueOf(year.getYear()),
             if (!py.getYear().getId().equals(qoy.getYear().getId())) {
                 throw new RuntimeException("Process must belong to the same year");
             }
-            boolean isResponsible = py.getProcess().getResponsibles().stream()
+            boolean isResponsible = py.getProcess().getEditors().stream()
                     .anyMatch(r -> r.getId().equals(currentUserId));
             if (!isResponsible && !isSuperAdmin) {
                 throw new RuntimeException("Apenas os responsáveis do processo podem editar associações");
@@ -523,7 +522,7 @@ entityName + " — " + String.valueOf(year.getYear()),
         for (Long processYearId : processIds) {
             ProcessYear py = processYearRepository.findById(processYearId)
                     .orElseThrow(() -> new RuntimeException("ProcessYear not found"));
-            boolean isResponsible = py.getProcess().getResponsibles().stream()
+            boolean isResponsible = py.getProcess().getEditors().stream()
                     .anyMatch(r -> r.getId().equals(currentUserId));
             if (!isResponsible && !isSuperAdmin) {
                 throw new RuntimeException("Apenas os responsáveis do processo podem editar associações");

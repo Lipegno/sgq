@@ -1,6 +1,8 @@
 package com.rodrigommfreitas.coreservice.resources.human;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.rodrigommfreitas.coreservice.department.Department;
+import com.rodrigommfreitas.coreservice.department.DepartmentRepository;
 import com.rodrigommfreitas.coreservice.document.Document;
 import com.rodrigommfreitas.coreservice.document.DocumentRepository;
 import com.rodrigommfreitas.coreservice.document.DocumentService;
@@ -33,6 +35,7 @@ public class HumanResourceService {
     private final DocumentService documentService;
     private final DocumentRepository documentRepository;
     private final CompetencyRepository competencyRepository;
+    private final DepartmentRepository departmentRepository;
     private final LogService logService;
     private final LogDetailsBuilder logDetailsBuilder;
 
@@ -44,11 +47,14 @@ public class HumanResourceService {
             throw new IllegalArgumentException("At least one year must be provided");
         }
 
+        Department department = departmentRepository.findById(request.departmentId())
+                .orElseThrow(() -> new RuntimeException("Department not found"));
+
         // 🔹 Create base entity
         HumanResource hr = HumanResource.builder()
                 .name(request.name())
                 .function(request.function())
-                .department(request.department())
+                .department(department)
                 .build();
 
         // 🔹 Create year entities
@@ -181,8 +187,13 @@ public class HumanResourceService {
 
         if (request.name() != null) hr.setName(request.name());
         if (request.function() != null) hr.setFunction(request.function());
-        if (request.department() != null) hr.setDepartment(request.department());
 
+        if (request.departmentId() != null) {
+            Department department = departmentRepository.findById(request.departmentId())
+                    .orElseThrow(() -> new RuntimeException("Department not found"));
+
+            hr.setDepartment(department);
+        }
         Long yearId = request.yearId();
         if (yearId != null) {
 
@@ -358,8 +369,8 @@ hr.getName() + " — " + String.valueOf(year.getYear()),
                 hr.getId(),
                 hr.getName(),
                 hr.getFunction(),
-                hr.getDepartment(),
-
+                hr.getDepartment() != null ? hr.getDepartment().getId() : null,
+                hr.getDepartment() != null ? hr.getDepartment().getName() : null,
                 competencies,
 
                 hry.getYear().getId(),

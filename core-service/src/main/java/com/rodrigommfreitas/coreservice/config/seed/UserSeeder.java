@@ -28,7 +28,8 @@ public class UserSeeder {
     public void seed() {
         if (userRepository.count() == 0) {
             List<SeedUser> users = List.of(
-                    new SeedUser("admin@test.com", "admin123", "John", "Doe", Set.of(Role.ROLE_SUPERADMIN, Role.ROLE_USER)),
+                    new SeedUser("gcq@mail.uma.pt", "gabineteControlo6445", "Gabinete", "Controlo-Qualidade", Set.of(Role.ROLE_SUPERADMIN, Role.ROLE_USER)),
+                    new SeedUser("admin@test.com", "admin123", "Gabinete", "Controlo-Qualidade", Set.of(Role.ROLE_SUPERADMIN, Role.ROLE_USER)),
                     new SeedUser("user@test.com", "user123", "Cristiano", "Ronaldo", Set.of(Role.ROLE_USER)),
                     new SeedUser("john@test.com", "password", "Rodrigo", "Freitas", Set.of(Role.ROLE_USER)),
                     new SeedUser("jane@test.com", "password", "Homer", "Simpson", Set.of(Role.ROLE_USER)),

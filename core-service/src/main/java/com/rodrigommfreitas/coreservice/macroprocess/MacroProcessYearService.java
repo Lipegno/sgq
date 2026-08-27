@@ -9,6 +9,7 @@ import com.rodrigommfreitas.coreservice.process.ProcessYearRepository;
 import com.rodrigommfreitas.coreservice.process.dto.DocumentSummary;
 import com.rodrigommfreitas.coreservice.department.dto.DepartmentResponse;
 import com.rodrigommfreitas.coreservice.process.dto.ProcessHierarchyResponse;
+import com.rodrigommfreitas.coreservice.process.dto.ProcessResponsibleResponse;
 import com.rodrigommfreitas.coreservice.process.dto.QualityObjectiveInfo;
 import com.rodrigommfreitas.coreservice.user.UserReferenceService;
 import com.rodrigommfreitas.coreservice.user.dto.UserSummary;
@@ -276,9 +277,23 @@ public class MacroProcessYearService {
                 .toList();
 
         var process = processYear.getProcess();
-        List<UserSummary> responsibles = process.getResponsibles().stream()
+        List<UserSummary> responsibles = process.getEditors().stream()
                 .map(userRefService::fromEntity)
                 .toList();
+
+        List<ProcessResponsibleResponse> formalResponsibles =
+                processYear.getResponsibles().stream()
+                        .map(hry -> new ProcessResponsibleResponse(
+                                hry.getId(),
+                                hry.getHumanResource().getId(),
+                                hry.getHumanResource().getName(),
+                                hry.getHumanResource().getFunction(),
+                                hry.getHumanResource().getDepartment() != null
+                                        ? hry.getHumanResource().getDepartment().getName()
+                                        : null
+                        ))
+                        .toList();
+
         List<DepartmentResponse> departments = process.getDepartments().stream()
                 .map(dept -> new DepartmentResponse(
                         dept.getId(),
@@ -292,11 +307,15 @@ public class MacroProcessYearService {
                 process.getId(),
                 process.getName(),
                 process.getObjective(),
+                process.getEntradas(),
+                process.getAtividades(),
+                process.getSaidas(),
                 process.getEntradasDocumentos().stream().map(this::mapDocSummary).toList(),
                 process.getSaidasDocumentos().stream().map(this::mapDocSummary).toList(),
                 mapDocSummary(process.getFichaDocumento()),
                 process.getDocuments().stream().map(this::mapDocSummary).toList(),
                 responsibles,
+                formalResponsibles,
                 departments,
                 indicators,
                 processYears,

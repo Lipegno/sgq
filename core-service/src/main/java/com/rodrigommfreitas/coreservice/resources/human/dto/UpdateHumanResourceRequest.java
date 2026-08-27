@@ -6,7 +6,7 @@ import java.util.List;
 public record UpdateHumanResourceRequest(
         String name,
         String function,
-        String department,
+        Long departmentId,
         List<String> competencies,
         Long yearId,
         boolean isActive

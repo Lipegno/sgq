@@ -8,8 +8,8 @@ public record HumanResourceResponse(
         Long id,
         String name,
         String function,
-        String department,
-
+        Long departmentId,
+        String departmentName,
         List<CompetencyResponse> competencies,
 
         // current year context

@@ -55,7 +55,7 @@ public class Process {
             inverseJoinColumns = @JoinColumn(name = "user_id")
     )
     @Builder.Default
-    private Set<User> responsibles = new HashSet<>();
+    private Set<User> editors = new HashSet<>();
 
     @ManyToMany
     @JoinTable(
@@ -70,6 +70,9 @@ public class Process {
     @JoinColumn(name = "ficha_documento_id")
     private Document fichaDocumento;
 
+    @Column(columnDefinition = "TEXT")
+    private String atividades;
+
     @ManyToMany
     @JoinTable(
             name = "process_documents",
@@ -82,4 +85,10 @@ public class Process {
     @OneToMany(mappedBy = "process")
     @Builder.Default
     private Set<ProcessYear> processYears = new HashSet<>();
+
+    @Column(columnDefinition = "TEXT")
+    private String entradas;
+
+    @Column(columnDefinition = "TEXT")
+    private String saidas;
 }

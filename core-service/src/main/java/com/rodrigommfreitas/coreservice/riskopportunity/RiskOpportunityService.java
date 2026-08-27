@@ -1,6 +1,5 @@
 package com.rodrigommfreitas.coreservice.riskopportunity;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.rodrigommfreitas.coreservice.log.ActionType;
 import com.rodrigommfreitas.coreservice.log.EntityType;
 import com.rodrigommfreitas.coreservice.log.LogService;
@@ -19,7 +18,6 @@ import com.rodrigommfreitas.coreservice.user.User;
 import com.rodrigommfreitas.coreservice.user.UserRepository;
 import com.rodrigommfreitas.coreservice.year.Year;
 import com.rodrigommfreitas.coreservice.year.YearRepository;
-import com.rodrigommfreitas.coreservice.year.dto.AssociateYearsRequest;
 import com.rodrigommfreitas.coreservice.year.dto.YearResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -335,7 +333,7 @@ entityName + " — " + yearValue,
                 throw new RuntimeException("ProcessYear must belong to the same year as RiskOpportunityYear");
             }
 
-            boolean isResponsible = processYear.getProcess().getResponsibles().stream()
+            boolean isResponsible = processYear.getProcess().getEditors().stream()
                     .anyMatch(r -> r.getId().equals(currentUserId));
             if (!isResponsible && !isSuperAdmin) {
                 throw new RuntimeException("Apenas os responsáveis do processo podem editar associações");
@@ -376,7 +374,7 @@ entityName + " — " + yearValue,
             ProcessYear processYear = processYearRepository.findById(processYearId)
                     .orElseThrow(() -> new RuntimeException("ProcessYear not found: " + processYearId));
 
-            boolean isResponsible = processYear.getProcess().getResponsibles().stream()
+            boolean isResponsible = processYear.getProcess().getEditors().stream()
                     .anyMatch(r -> r.getId().equals(currentUserId));
             if (!isResponsible && !isSuperAdmin) {
                 throw new RuntimeException("Apenas os responsáveis do processo podem editar associações");

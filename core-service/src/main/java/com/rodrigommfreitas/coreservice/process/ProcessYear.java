@@ -4,6 +4,7 @@ import com.rodrigommfreitas.coreservice.indicator.IndicatorYear;
 import com.rodrigommfreitas.coreservice.interestedparty.InterestedPartyYear;
 import com.rodrigommfreitas.coreservice.macroprocess.MacroProcessYear;
 import com.rodrigommfreitas.coreservice.qualityobjective.QualityObjectiveYear;
+import com.rodrigommfreitas.coreservice.resources.human.HumanResourceYear;
 import com.rodrigommfreitas.coreservice.riskopportunity.RiskOpportunityYear;
 import com.rodrigommfreitas.coreservice.year.Year;
 import jakarta.persistence.*;
@@ -58,4 +59,13 @@ public class ProcessYear {
     @ManyToMany(mappedBy = "processes")
     @Builder.Default
     private Set<QualityObjectiveYear> qualityObjectives = new HashSet<>();
+
+    @ManyToMany
+    @JoinTable(
+            name = "process_year_responsibles",
+            joinColumns = @JoinColumn(name = "process_year_id"),
+            inverseJoinColumns = @JoinColumn(name = "human_resource_year_id")
+    )
+    @Builder.Default
+    private Set<HumanResourceYear> responsibles = new HashSet<>();
 }
