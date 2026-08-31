@@ -40,7 +40,7 @@ import {
   associateIndicatorYears,
   disassociateIndicatorYears,
   getProcessOptionsByYear,
-  getUsers,
+  getHumanResourcesByYear,
   getYears,
   getIndicatorsByYear,
 } from "@/api/core";
@@ -52,7 +52,6 @@ import type {
   IndicatorWithProcesses,
   IndicatorFrequency,
   IndicatorValueType,
-  UserSummary,
 } from "@/types";
 
 const frequencyColors: Record<string, string> = {
@@ -110,7 +109,7 @@ export const IndicatorItem: React.FC<IndicatorItemProps> = ({ indicator, yearId 
     formula: indicator.formula ?? "",
     frequency: indicator.frequency ?? "ANNUAL" as IndicatorFrequency,
     valueType: (indicator.valueType ?? "NUMBER") as IndicatorValueType,
-    responsibleId: indicator.responsible?.id ?? null as number | null,
+    responsibleId: indicator.responsible?.humanResourceYearId ?? null,
     goal: indicator.goal?.toString() ?? "",
     notes: indicator.notes ?? "",
   });
@@ -133,7 +132,7 @@ export const IndicatorItem: React.FC<IndicatorItemProps> = ({ indicator, yearId 
         formula: indicator.formula ?? "",
         frequency: indicator.frequency ?? "ANNUAL" as IndicatorFrequency,
         valueType: (indicator.valueType ?? "NUMBER") as IndicatorValueType,
-        responsibleId: indicator.responsible?.id ?? null,
+        responsibleId: indicator.responsible?.humanResourceYearId ?? null,
         goal: indicator.goal?.toString() ?? "",
         notes: indicator.notes ?? "",
       });
@@ -159,11 +158,11 @@ export const IndicatorItem: React.FC<IndicatorItemProps> = ({ indicator, yearId 
     enabled: detailOpen,
   });
 
-  const { data: users } = useQuery({
-    queryKey: ["users"],
-    queryFn: getUsers,
-    enabled: detailOpen,
-  });
+const { data: humanResources } = useQuery({
+  queryKey: ["human-resources", yearId],
+  queryFn: () => getHumanResourcesByYear(yearId),
+  enabled: detailOpen,
+});
 
   const { data: allYears } = useQuery({
     queryKey: ["years"],
@@ -312,9 +311,7 @@ export const IndicatorItem: React.FC<IndicatorItemProps> = ({ indicator, yearId 
       });
   };
 
-  const displayName = indicator.responsible
-    ? `${indicator.responsible.firstName} ${indicator.responsible.lastName}`
-    : indicator.owner ?? "—";
+  const displayName = indicator.responsible?.name ?? "—";
 
   const measurements = indicator.measurements ?? [];
 
@@ -475,9 +472,14 @@ export const IndicatorItem: React.FC<IndicatorItemProps> = ({ indicator, yearId 
                       <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">Nenhum</SelectItem>
-                        {users?.map((u: UserSummary) => (
-                          <SelectItem key={u.id} value={u.id.toString()}>
-                            {u.firstName} {u.lastName}
+                        {humanResources
+                        ?.filter((r) => r.isActive)
+                        .map((r) => (
+                          <SelectItem
+                            key={r.hryId}
+                            value={r.hryId.toString()}
+                          >
+                            {r.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
