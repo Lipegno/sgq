@@ -1,9 +1,5 @@
 package com.rodrigommfreitas.coreservice.indicator;
 
-import com.rodrigommfreitas.coreservice.measurement.Measurement;
-import com.rodrigommfreitas.coreservice.process.Process;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.rodrigommfreitas.coreservice.user.User;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -34,11 +30,6 @@ public class Indicator {
 
     @Enumerated(EnumType.STRING)
     private IndicatorValueType valueType;
-
-    @JsonIgnore
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "responsible_id")
-    private User responsible;
 
     @Builder.Default
     @OneToMany(mappedBy = "indicator")

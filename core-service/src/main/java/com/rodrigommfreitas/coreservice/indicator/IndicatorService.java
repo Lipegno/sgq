@@ -10,6 +10,9 @@ import com.rodrigommfreitas.coreservice.measurement.dto.MeasurementResponse;
 import com.rodrigommfreitas.coreservice.process.ProcessYear;
 import com.rodrigommfreitas.coreservice.process.ProcessYearRepository;
 import com.rodrigommfreitas.coreservice.process.dto.ProcessOptionResponse;
+import com.rodrigommfreitas.coreservice.process.dto.ProcessResponsibleResponse;
+import com.rodrigommfreitas.coreservice.resources.human.HumanResourceYear;
+import com.rodrigommfreitas.coreservice.resources.human.HumanResourceYearRepository;
 import com.rodrigommfreitas.coreservice.security.UserContextHolder;
 import com.rodrigommfreitas.coreservice.user.Role;
 import com.rodrigommfreitas.coreservice.user.User;
@@ -35,6 +38,7 @@ public class IndicatorService {
     private final YearRepository yearRepository;
     private final ProcessYearRepository processYearRepository;
     private final UserRepository userRepository;
+    private final HumanResourceYearRepository humanResourceYearRepository;
     private final UserReferenceService userRefService;
     private final LogService logService;
     private final LogDetailsBuilder logDetailsBuilder;
@@ -51,14 +55,20 @@ public class IndicatorService {
         Year year = yearRepository.findById(request.yearId())
                 .orElseThrow(() -> new IllegalArgumentException("Year not found"));
 
+        HumanResourceYear responsible = request.responsibleId() != null
+                ? humanResourceYearRepository.findById(request.responsibleId())
+                .orElseThrow(() -> new IllegalArgumentException("HumanResourceYear not found"))
+                : null;
+
+        if (responsible != null && !responsible.getYear().getId().equals(year.getId())) {
+            throw new IllegalArgumentException("Responsible must belong to the same year as the indicator");
+        }
+
         Indicator indicator = Indicator.builder()
                 .name(request.name())
                 .formula(request.formula())
                 .frequency(request.frequency())
                 .valueType(request.valueType())
-                .responsible(request.responsibleId() != null
-                        ? userRepository.findById(request.responsibleId()).orElse(null)
-                        : null)
                 .notes(request.notes())
                 .build();
 
@@ -67,6 +77,7 @@ public class IndicatorService {
         IndicatorYear indicatorYear = IndicatorYear.builder()
                 .indicator(indicator)
                 .year(year)
+                .responsible(responsible)
                 .goal(request.goal())
                 .build();
 
@@ -78,8 +89,7 @@ public class IndicatorService {
         fields.put("formula", indicator.getFormula() != null ? indicator.getFormula() : "");
         fields.put("frequency", indicator.getFrequency() != null ? indicator.getFrequency().name() : "");
         fields.put("valueType", indicator.getValueType() != null ? indicator.getValueType().name() : "");
-        fields.put("responsible", indicator.getResponsible() != null ? userDisplayName(indicator.getResponsible()) : "");
-        fields.put("goal", indicatorYear.getGoal() != null ? indicatorYear.getGoal().stripTrailingZeros().toPlainString() : "");
+        fields.put("responsible", indicatorYear.getResponsible() != null ? indicatorYear.getResponsible().getHumanResource().getName() : "");
         fields.put("notes", indicator.getNotes() != null ? indicator.getNotes() : "");
         fields.put("year", String.valueOf(year.getYear()));
         logService.createLog(new CreateLogRequest(
@@ -101,14 +111,23 @@ public class IndicatorService {
         ProcessYear processYear = processYearRepository.findById(processYearId)
                 .orElseThrow(() -> new IllegalArgumentException("ProcessYear not found"));
 
+        HumanResourceYear responsible = request.responsibleId() != null
+                ? humanResourceYearRepository.findById(request.responsibleId())
+                .orElseThrow(() -> new IllegalArgumentException("HumanResourceYear not found"))
+                : null;
+
+        if (responsible != null &&
+                !responsible.getYear().getId().equals(processYear.getYear().getId())) {
+            throw new IllegalArgumentException(
+                    "Responsible must belong to the same year as the indicator"
+            );
+        }
+
         Indicator indicator = Indicator.builder()
                 .name(request.name())
                 .formula(request.formula())
                 .frequency(request.frequency())
                 .valueType(request.valueType())
-                .responsible(request.responsibleId() != null
-                        ? userRepository.findById(request.responsibleId()).orElse(null)
-                        : null)
                 .notes(request.notes())
                 .build();
 
@@ -117,6 +136,7 @@ public class IndicatorService {
         IndicatorYear indicatorYear = IndicatorYear.builder()
                 .indicator(indicator)
                 .year(processYear.getYear())
+                .responsible(responsible)
                 .goal(request.goal())
                 .build();
 
@@ -129,8 +149,10 @@ public class IndicatorService {
         fields.put("formula", indicator.getFormula() != null ? indicator.getFormula() : "");
         fields.put("frequency", indicator.getFrequency() != null ? indicator.getFrequency().name() : "");
         fields.put("valueType", indicator.getValueType() != null ? indicator.getValueType().name() : "");
-        fields.put("responsible", indicator.getResponsible() != null ? userDisplayName(indicator.getResponsible()) : "");
-        fields.put("goal", indicatorYear.getGoal() != null ? indicatorYear.getGoal().stripTrailingZeros().toPlainString() : "");
+        fields.put("responsible",
+                indicatorYear.getResponsible() != null
+                        ? indicatorYear.getResponsible().getHumanResource().getName()
+                        : "");        fields.put("goal", indicatorYear.getGoal() != null ? indicatorYear.getGoal().stripTrailingZeros().toPlainString() : "");
         fields.put("notes", indicator.getNotes() != null ? indicator.getNotes() : "");
         fields.put("year", String.valueOf(processYear.getYear().getYear()));
         logService.createLog(new CreateLogRequest(
@@ -158,7 +180,7 @@ public class IndicatorService {
         before.put("formula", indicator.getFormula() != null ? indicator.getFormula() : "");
         before.put("frequency", indicator.getFrequency() != null ? indicator.getFrequency().name() : "");
         before.put("valueType", indicator.getValueType() != null ? indicator.getValueType().name() : "");
-        before.put("responsible", indicator.getResponsible() != null ? userDisplayName(indicator.getResponsible()) : "");
+        before.put("responsible", indicatorYear.getResponsible() != null ? indicatorYear.getResponsible().getHumanResource().getName() : "");
         before.put("goal", indicatorYear.getGoal() != null ? indicatorYear.getGoal().stripTrailingZeros().toPlainString() : "");
         before.put("notes", indicator.getNotes() != null ? indicator.getNotes() : "");
 
@@ -166,9 +188,19 @@ public class IndicatorService {
         if (request.formula() != null) indicator.setFormula(request.formula());
         if (request.frequency() != null) indicator.setFrequency(request.frequency());
         if (request.valueType() != null) indicator.setValueType(request.valueType());
-        if (request.responsibleId() != null) {
-            User responsible = userRepository.findById(request.responsibleId()).orElse(null);
-            indicator.setResponsible(responsible);
+        if (request.responsibleId() == null) {
+            indicatorYear.setResponsible(null);
+        } else {
+            HumanResourceYear responsible = humanResourceYearRepository.findById(request.responsibleId())
+                    .orElseThrow(() -> new IllegalArgumentException("HumanResourceYear not found"));
+
+            if (!responsible.getYear().getId().equals(indicatorYear.getYear().getId())) {
+                throw new IllegalArgumentException(
+                        "Responsible must belong to the same year as the indicator"
+                );
+            }
+
+            indicatorYear.setResponsible(responsible);
         }
         if (request.notes() != null) indicator.setNotes(request.notes());
         if (request.goal() != null) indicatorYear.setGoal(BigDecimal.valueOf(request.goal()));
@@ -181,7 +213,7 @@ public class IndicatorService {
         after.put("formula", indicator.getFormula() != null ? indicator.getFormula() : "");
         after.put("frequency", indicator.getFrequency() != null ? indicator.getFrequency().name() : "");
         after.put("valueType", indicator.getValueType() != null ? indicator.getValueType().name() : "");
-        after.put("responsible", indicator.getResponsible() != null ? userDisplayName(indicator.getResponsible()) : "");
+        after.put("responsible",indicatorYear.getResponsible() != null ? indicatorYear.getResponsible().getHumanResource().getName() : "");
         after.put("goal", indicatorYear.getGoal() != null ? indicatorYear.getGoal().stripTrailingZeros().toPlainString() : "");
         after.put("notes", indicator.getNotes() != null ? indicator.getNotes() : "");
 
@@ -294,6 +326,22 @@ public class IndicatorService {
         }
     }
 
+    private ProcessResponsibleResponse mapResponsible(HumanResourceYear hry) {
+        if (hry == null) {
+            return null;
+        }
+
+        return new ProcessResponsibleResponse(
+                hry.getId(),
+                hry.getHumanResource().getId(),
+                hry.getHumanResource().getName(),
+                hry.getHumanResource().getFunction(),
+                hry.getHumanResource().getDepartment() != null
+                        ? hry.getHumanResource().getDepartment().getName()
+                        : null
+        );
+    }
+
     private IndicatorYearResponse mapToResponse(IndicatorYear iy) {
         return new IndicatorYearResponse(
                 iy.getId(),
@@ -302,7 +350,7 @@ public class IndicatorService {
                 iy.getIndicator().getFormula(),
                 iy.getIndicator().getFrequency().name(),
                 iy.getIndicator().getValueType().name(),
-                userRefService.fromEntity(iy.getIndicator().getResponsible()),
+                mapResponsible(iy.getResponsible()),
                 iy.getIndicator().getNotes(),
                 iy.getYear().getId(),
                 iy.getGoal()
@@ -434,8 +482,7 @@ public class IndicatorService {
                             indicatorYear.getIndicator().getFormula(),
                             indicatorYear.getIndicator().getFrequency(),
                             indicatorYear.getIndicator().getValueType().name(),
-                            userRefService.fromEntity(indicatorYear.getIndicator().getResponsible()),
-                            indicatorYear.getIndicator().getNotes(),
+                            mapResponsible(indicatorYear.getResponsible()),                            indicatorYear.getIndicator().getNotes(),
                             indicatorYear.getGoal(),
                             processes,
                             measurements
@@ -453,7 +500,7 @@ public class IndicatorService {
                         iy.getIndicator().getId(),
                         iy.getIndicator().getName(),
                         iy.getIndicator().getFrequency(),
-                        userRefService.fromEntity(iy.getIndicator().getResponsible())
+                        mapResponsible(iy.getResponsible())
                 ))
                 .toList();
     }

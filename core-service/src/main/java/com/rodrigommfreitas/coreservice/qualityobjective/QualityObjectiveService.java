@@ -11,7 +11,9 @@ import com.rodrigommfreitas.coreservice.measurement.dto.MeasurementResponse;
 import com.rodrigommfreitas.coreservice.process.ProcessYear;
 import com.rodrigommfreitas.coreservice.process.ProcessYearRepository;
 import com.rodrigommfreitas.coreservice.process.dto.ProcessOptionResponse;
+import com.rodrigommfreitas.coreservice.process.dto.ProcessResponsibleResponse;
 import com.rodrigommfreitas.coreservice.qualityobjective.dto.*;
+import com.rodrigommfreitas.coreservice.resources.human.HumanResourceYear;
 import com.rodrigommfreitas.coreservice.security.UserContextHolder;
 import com.rodrigommfreitas.coreservice.user.Role;
 import com.rodrigommfreitas.coreservice.user.User;
@@ -443,6 +445,22 @@ entityName + " — " + String.valueOf(year.getYear()),
         );
     }
 
+    private ProcessResponsibleResponse mapResponsible(HumanResourceYear hry) {
+        if (hry == null) {
+            return null;
+        }
+
+        return new ProcessResponsibleResponse(
+                hry.getId(),
+                hry.getHumanResource().getId(),
+                hry.getHumanResource().getName(),
+                hry.getHumanResource().getFunction(),
+                hry.getHumanResource().getDepartment() != null
+                        ? hry.getHumanResource().getDepartment().getName()
+                        : null
+        );
+    }
+
     private QualityObjectiveIndicatorResponse mapToIndicatorResponse(IndicatorYear iy) {
         List<MeasurementResponse> measurements = iy.getMeasurements().stream()
                 .map(m -> new MeasurementResponse(
@@ -461,7 +479,7 @@ entityName + " — " + String.valueOf(year.getYear()),
                 iy.getIndicator().getFormula(),
                 iy.getIndicator().getFrequency(),
                 iy.getIndicator().getValueType() != null ? iy.getIndicator().getValueType().name() : null,
-                userRefService.fromEntity(iy.getIndicator().getResponsible()),
+                mapResponsible(iy.getResponsible()),
                 iy.getIndicator().getNotes(),
                 iy.getGoal(),
                 measurements

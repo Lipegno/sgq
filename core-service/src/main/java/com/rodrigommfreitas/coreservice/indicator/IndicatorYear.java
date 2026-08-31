@@ -3,6 +3,7 @@ package com.rodrigommfreitas.coreservice.indicator;
 import com.rodrigommfreitas.coreservice.measurement.Measurement;
 import com.rodrigommfreitas.coreservice.process.ProcessYear;
 import com.rodrigommfreitas.coreservice.qualityobjective.QualityObjectiveYear;
+import com.rodrigommfreitas.coreservice.resources.human.HumanResourceYear;
 import com.rodrigommfreitas.coreservice.year.Year;
 import jakarta.persistence.*;
 import lombok.*;
@@ -35,6 +36,10 @@ public class IndicatorYear {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "year_id", nullable = false)
     private Year year;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "responsible_id")
+    private HumanResourceYear responsible;
 
     private BigDecimal goal;
 

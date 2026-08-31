@@ -1,5 +1,6 @@
 package com.rodrigommfreitas.coreservice.indicator.dto;
 
+import com.rodrigommfreitas.coreservice.process.dto.ProcessResponsibleResponse;
 import com.rodrigommfreitas.coreservice.user.dto.UserSummary;
 
 import java.math.BigDecimal;
@@ -11,7 +12,7 @@ public record IndicatorYearResponse(
         String formula,
         String frequency,
         String valueType,
-        UserSummary responsible,
+        ProcessResponsibleResponse responsible,
         String notes,
         Long yearId,
         BigDecimal goal

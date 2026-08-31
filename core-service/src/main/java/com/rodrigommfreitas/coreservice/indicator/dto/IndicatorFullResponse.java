@@ -3,8 +3,7 @@ package com.rodrigommfreitas.coreservice.indicator.dto;
 import com.rodrigommfreitas.coreservice.indicator.IndicatorFrequency;
 import com.rodrigommfreitas.coreservice.measurement.dto.MeasurementResponse;
 import com.rodrigommfreitas.coreservice.process.dto.ProcessOptionResponse;
-import com.rodrigommfreitas.coreservice.user.dto.UserSummary;
-
+import com.rodrigommfreitas.coreservice.process.dto.ProcessResponsibleResponse;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -15,7 +14,7 @@ public record IndicatorFullResponse(
         String formula,
         IndicatorFrequency frequency,
         String valueType,
-        UserSummary responsible,
+        ProcessResponsibleResponse responsible,
         String notes,
         BigDecimal goal,
         List<ProcessOptionResponse> processes,
