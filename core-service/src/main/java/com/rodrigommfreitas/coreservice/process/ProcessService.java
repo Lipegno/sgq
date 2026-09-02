@@ -1070,6 +1070,24 @@ Set<Department> departments = new HashSet<>();
         }
 
         processYear.getResponsibles().add(humanResourceYear);
+
+        String responsibleName =
+                humanResourceYear.getHumanResource().getName();
+
+        logService.createLog(new CreateLogRequest(
+                UserContextHolder.getUserId(),
+                EntityType.PROCESS,
+                processYear.getProcess().getId(),
+                processYear.getId(),
+                processYear.getYear().getId(),
+                processYear.getProcess().getName(),
+                ActionType.UPDATED,
+                logDetailsBuilder.buildAssociation(
+                        "responsável",
+                        responsibleName,
+                        "ASSOCIATED"
+                )
+        ));
     }
 
     @Transactional
@@ -1085,6 +1103,24 @@ Set<Department> departments = new HashSet<>();
                         .orElseThrow(() -> new RuntimeException("HumanResourceYear not found"));
 
         processYear.getResponsibles().remove(humanResourceYear);
+
+        String responsibleName =
+                humanResourceYear.getHumanResource().getName();
+
+        logService.createLog(new CreateLogRequest(
+                UserContextHolder.getUserId(),
+                EntityType.PROCESS,
+                processYear.getProcess().getId(),
+                processYear.getId(),
+                processYear.getYear().getId(),
+                processYear.getProcess().getName(),
+                ActionType.UPDATED,
+                logDetailsBuilder.buildAssociation(
+                        "responsável",
+                        responsibleName,
+                        "DISASSOCIATED"
+                )
+        ));
     }
 
 

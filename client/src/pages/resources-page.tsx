@@ -55,6 +55,7 @@ import {
   addCalibrationRecord,
   deleteCalibrationRecord,
   createCompetency,
+  getHumanResourceResponsibilities,
 } from "@/api/core";
 import { YearSelector } from "@/components/year-selector";
 import YearAssociationDialog from "@/components/year-association-dialog";
@@ -83,6 +84,84 @@ const TABS: { key: ResourceTab; label: string; icon: typeof Users }[] = [
   { key: "infraestruturas", label: "7.1.3. Infraestruturas", icon: Building2 },
   { key: "emm", label: "7.1.5. EMM", icon: Zap },
 ];
+
+function HumanResourceResponsibilities({
+  humanResourceYearId,
+}: {
+  humanResourceYearId: number;
+}) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["human-resource-responsibilities", humanResourceYearId],
+    queryFn: () => getHumanResourceResponsibilities(humanResourceYearId),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="border-t border-border pt-4 mt-4">
+        <Skeleton className="h-4 w-28 mb-3" />
+        <Skeleton className="h-3 w-full mb-2" />
+        <Skeleton className="h-3 w-3/4" />
+      </div>
+    );
+  }
+
+  const hasProcesses = (data?.processes.length ?? 0) > 0;
+  const hasIndicators = (data?.indicators.length ?? 0) > 0;
+
+  return (
+    <div className="border-t border-border pt-4 mt-4">
+      <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-3">
+        Responsabilidades
+      </div>
+
+      {!hasProcesses && !hasIndicators ? (
+        <span className="text-xs text-muted-foreground italic">
+          Nenhuma responsabilidade associada.
+        </span>
+      ) : (
+        <div className="space-y-3">
+          {hasProcesses && (
+            <div>
+              <div className="text-[10px] font-semibold text-muted-foreground mb-1">
+                Processos
+              </div>
+
+              <div className="flex flex-wrap gap-1.5">
+                {data!.processes.map(process => (
+                  <span
+                    key={process.processYearId}
+                    className="inline-flex items-center px-2 py-1 bg-primary/5 text-primary rounded-lg text-[10px] font-medium"
+                  >
+                    {process.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {hasIndicators && (
+            <div>
+              <div className="text-[10px] font-semibold text-muted-foreground mb-1">
+                Indicadores
+              </div>
+
+              <div className="flex flex-wrap gap-1.5">
+                {data!.indicators.map(indicator => (
+                  <span
+                    key={indicator.indicatorYearId}
+                    className="inline-flex items-center px-2 py-1 bg-primary/5 text-primary rounded-lg text-[10px] font-medium"
+                  >
+                    {indicator.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function ResourcesPage() {
   const queryClient = useQueryClient();
@@ -268,7 +347,7 @@ export default function ResourcesPage() {
       p =>
         p.name.toLowerCase().includes(q) ||
         p.function.toLowerCase().includes(q) ||
-        p.department.toLowerCase().includes(q)
+        p.departmentName.toLowerCase().includes(q)
     );
   }, [people, searchQuery]);
 
@@ -832,7 +911,7 @@ export default function ResourcesPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
-                    <Briefcase size={13} /> <span>{person.department || "Não Especificado"}</span>
+                    <Briefcase size={13} /> <span>{person.departmentName || "Não Especificado"}</span>
                   </div>
                   <div className="border-t border-border pt-4">
                     <div className="flex items-center justify-between mb-3">
@@ -857,6 +936,9 @@ export default function ResourcesPage() {
                       )}
                     </div>
                   </div>
+                  <HumanResourceResponsibilities
+                    humanResourceYearId={person.hryId}
+                  />
                 </div>
               ))}
             </div>

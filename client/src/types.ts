@@ -269,6 +269,14 @@ export interface IndicatorProcess {
   macroProcessName: string;
 }
 
+export interface ProcessResponsibleResponse {
+  humanResourceYearId: number;
+  humanResourceId: number;
+  name: string;
+  function: string | null;
+  department: string | null;
+}
+
 export interface IndicatorWithProcesses extends Indicator {
   processes: ProcessOptionResponse[];
   owner: string;
@@ -276,8 +284,7 @@ export interface IndicatorWithProcesses extends Indicator {
   indicatorId?: number;
   goal?: number | null;
   valueType?: string;
-  responsible?: UserSummary | null;
-  notes?: string | null;
+responsible: ProcessResponsibleResponse | null;  notes?: string | null;
 }
 
 export interface IndicatorSimple {
@@ -387,7 +394,7 @@ export interface UserSummary {
 
 export interface DocumentVersionResponse {
   versionId: number;
-  version: number;
+  version: string;
   fileName: string;
   fileType: string;
   uploadedBy: UserSummary;
@@ -1053,4 +1060,18 @@ export interface ProcessResponsibleResponse {
   name: string;
   function: string | null;
   department: string | null;
+}
+
+export interface HumanResourceResponsibilitiesResponse {
+  processes: {
+    processYearId: number;
+    processId: number;
+    name: string;
+  }[];
+
+  indicators: {
+    indicatorYearId: number;
+    indicatorId: number;
+    name: string;
+  }[];
 }

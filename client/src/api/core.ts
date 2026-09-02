@@ -28,7 +28,8 @@ import type {
   CreateImprovementActionRequest,
   UpdateImprovementActionRequest,
   UpdateImprovementOpportunityYearRequest,
-  MacroProcessDiagramResponse
+  MacroProcessDiagramResponse,
+   HumanResourceResponsibilitiesResponse,
 } from "@/types.ts";
 
 export const getMacroProcessHierarchy = async (yearId: number): Promise<ProcessHierarchyResponse> => {
@@ -392,7 +393,7 @@ export const getMacroProcessDiagram = async (
 export const uploadMacroProcessDiagram = async (
   yearId: number,
   file: File,
-  version: number,
+  version: string,
   uploadedById: number,
   existingDocumentId?: number | null,
 ): Promise<MacroProcessDiagramResponse> => {
@@ -1109,6 +1110,17 @@ export const getDepartmentUsers = async (departmentId: number): Promise<UserSumm
   return res.data;
 };
 
+export const createUser = async (data: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+}): Promise<{ id: number; email: string }> => {
+  const res = await api.post("/users", data);
+  return res.data;
+};
+
 /* QUALITY OBJECTIVES (6.2) */
 
 export const getQualityObjectivesByYear = async (yearId: number): Promise<QualityObjectiveResponse[]> => {
@@ -1442,3 +1454,13 @@ export const removeProcessEditor = async (
 ): Promise<void> => {
   await api.delete(`/processes/${processId}/editors/${userId}`);
 };
+
+export async function getHumanResourceResponsibilities(
+  humanResourceYearId: number
+): Promise<HumanResourceResponsibilitiesResponse> {
+  const response = await api.get(
+    `/human-resources/${humanResourceYearId}/responsibilities`
+  );
+
+  return response.data;
+}

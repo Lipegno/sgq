@@ -3,6 +3,7 @@ package com.rodrigommfreitas.coreservice.resources.human;
 import com.rodrigommfreitas.coreservice.document.DocumentService;
 import com.rodrigommfreitas.coreservice.document.dto.DocumentResponse;
 import com.rodrigommfreitas.coreservice.document.dto.UploadDocumentRequest;
+import com.rodrigommfreitas.coreservice.indicator.dto.HumanResourceResponsibilitiesResponse;
 import com.rodrigommfreitas.coreservice.resources.human.dto.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -83,4 +84,12 @@ public class HumanResourceController {
     public List<HumanResourceResponse> getByYear(@PathVariable Long yearId) {
         return service.getByYear(yearId);
     }
+
+    @GetMapping("/{humanResourceYearId}/responsibilities")
+    public HumanResourceResponsibilitiesResponse getResponsibilities(
+            @PathVariable Long humanResourceYearId
+    ) {
+        return service.getResponsibilities(humanResourceYearId);
+    }
 }
+

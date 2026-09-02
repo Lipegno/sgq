@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getUsers, updateUserRoles } from "@/api/core";
+import { getUsers, updateUserRoles, createUser } from "@/api/core";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { UserCog, Shield } from "lucide-react";
+import { UserCog, Shield, Plus } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import type { UserSummary } from "@/types";
 
@@ -25,18 +25,42 @@ const ALL_ROLES = [
 ];
 
 export default function UsersPage() {
-  const { roles } = useAuth();
+  const { roles, user } = useAuth();
   const isSuperAdmin = roles.includes("ROLE_SUPERADMIN");
-
+  const canCreateUsers = user?.email?.toLowerCase() === "admin.sig@mail.uma.pt";
   const queryClient = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserSummary & { roles: string[] } | null>(null);
   const [editRoles, setEditRoles] = useState<string[]>([]);
-
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newUser, setNewUser] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
   const { data: users, isLoading } = useQuery({
     queryKey: ["users"],
     queryFn: getUsers,
     enabled: isSuperAdmin,
+  });
+
+  const createUserMutation = useMutation({
+    mutationFn: createUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+
+      setCreateOpen(false);
+
+      setNewUser({
+        firstName: "",
+        lastName: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+      });
+    },
   });
 
   const updateRolesMutation = useMutation({
@@ -75,6 +99,12 @@ export default function UsersPage() {
             <p className="text-muted-foreground text-sm mt-1">Gerir funções e permissões dos utilizadores.</p>
           </div>
         </div>
+        {canCreateUsers && (
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="size-4 mr-2" />
+            Adicionar utilizador
+          </Button>
+        )}
       </div>
 
       <div className="border rounded-lg overflow-hidden">
@@ -130,6 +160,147 @@ export default function UsersPage() {
         </table>
       </div>
 
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Adicionar utilizador</DialogTitle>
+
+            <DialogDescription>
+              O novo utilizador será criado inicialmente com acesso externo.
+              As funções podem ser alteradas posteriormente.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">
+                  Nome
+                </label>
+
+                <input
+                  type="text"
+                  value={newUser.firstName}
+                  onChange={(e) =>
+                    setNewUser({
+                      ...newUser,
+                      firstName: e.target.value,
+                    })
+                  }
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">
+                  Apelido
+                </label>
+
+                <input
+                  type="text"
+                  value={newUser.lastName}
+                  onChange={(e) =>
+                    setNewUser({
+                      ...newUser,
+                      lastName: e.target.value,
+                    })
+                  }
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">
+                Email
+              </label>
+
+              <input
+                type="email"
+                value={newUser.email}
+                onChange={(e) =>
+                  setNewUser({
+                    ...newUser,
+                    email: e.target.value,
+                  })
+                }
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">
+                Password
+              </label>
+
+              <input
+                type="password"
+                value={newUser.password}
+                onChange={(e) =>
+                  setNewUser({
+                    ...newUser,
+                    password: e.target.value,
+                  })
+                }
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">
+                Confirmar password
+              </label>
+
+              <input
+                type="password"
+                value={newUser.confirmPassword}
+                onChange={(e) =>
+                  setNewUser({
+                    ...newUser,
+                    confirmPassword: e.target.value,
+                  })
+                }
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              />
+            </div>
+
+            {newUser.password &&
+              newUser.confirmPassword &&
+              newUser.password !== newUser.confirmPassword && (
+                <p className="text-sm text-destructive">
+                  As passwords não coincidem.
+                </p>
+              )}
+          </div>
+
+          <DialogFooter className="mt-4">
+            <DialogClose asChild>
+              <Button variant="outline">
+                Cancelar
+              </Button>
+            </DialogClose>
+
+            <Button
+              onClick={() => createUserMutation.mutate(newUser)}
+              disabled={
+                createUserMutation.isPending ||
+                !newUser.firstName.trim() ||
+                !newUser.lastName.trim() ||
+                !newUser.email.trim() ||
+                !newUser.password ||
+                !newUser.confirmPassword ||
+                newUser.password !== newUser.confirmPassword
+              }
+            >
+              {createUserMutation.isPending
+                ? "A criar..."
+                : "Criar utilizador"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
       {/* Edit Roles Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="sm:max-w-sm">
@@ -145,6 +316,14 @@ export default function UsersPage() {
                 <Checkbox
                   checked={editRoles.includes(role.value)}
                   onCheckedChange={(checked) => {
+                    const isProtectedBootstrapRole =
+                      selectedUser?.email?.toLowerCase() === "admin.sig@mail.uma.pt" &&
+                      role.value === "ROLE_SUPERADMIN";
+
+                    if (isProtectedBootstrapRole) {
+                      return;
+                    }
+
                     if (checked) {
                       setEditRoles([...editRoles, role.value]);
                     } else {

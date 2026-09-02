@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 public record DocumentVersionResponse(
         Long versionId,
-        double version,
+        String version,
         String fileName,
         String fileType,
         UserSummary uploadedBy,

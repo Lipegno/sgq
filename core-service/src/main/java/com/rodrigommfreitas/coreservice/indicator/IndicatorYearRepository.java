@@ -10,7 +10,7 @@ import java.util.Optional;
 public interface IndicatorYearRepository extends JpaRepository<IndicatorYear, Long> {
     List<IndicatorYear> findByProcessesId(Long processYearId);
     List<IndicatorYear> findByYearId(Long yearId);
-
+    List<IndicatorYear> findByResponsibleId(Long humanResourceYearId);
     Optional<IndicatorYear> findByIndicatorIdAndYearId(Long id, Long yearId);
 
     List<IndicatorYear> findByIndicatorId(Long indicatorId);

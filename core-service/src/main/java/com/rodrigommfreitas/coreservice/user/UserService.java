@@ -13,6 +13,7 @@ import com.rodrigommfreitas.coreservice.year.Year;
 import com.rodrigommfreitas.coreservice.year.YearRepository;
 import com.rodrigommfreitas.coreservice.security.UserContextHolder;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -29,12 +30,32 @@ public class UserService {
     private final UserYearAccessRepository userYearAccessRepository;
     private final YearRepository yearRepository;
     private final PasswordEncoder passwordEncoder;
+    @Value("${app.bootstrap-admin.email}")
+    private String bootstrapAdminEmail;
 
     @Transactional
     public CreateUserResponse createUser(CreateUserRequest request) {
+        Long currentUserId = UserContextHolder.getUserId();
+
+        if (currentUserId == null) {
+            throw new AccessDeniedException("Utilizador não autenticado");
+        }
+
+        User currentUser = userRepository.findById(currentUserId)
+                .orElseThrow(() ->
+                        new AccessDeniedException("Utilizador não autenticado")
+                );
+
+        if (!currentUser.getEmail().equalsIgnoreCase(bootstrapAdminEmail)) {
+            throw new AccessDeniedException(
+                    "Apenas o administrador principal pode criar utilizadores"
+            );
+        }
+
         if (!request.password().equals(request.confirmPassword())) {
             throw new PasswordsDontMatchException();
         }
+
         if (userRepository.existsByEmail(request.email())) {
             throw new EmailAlreadyExistsException();
         }
@@ -44,11 +65,15 @@ public class UserService {
                 .password(passwordEncoder.encode(request.password()))
                 .firstName(request.firstName())
                 .lastName(request.lastName())
-                .roles(Set.of(Role.ROLE_USER))
+                .roles(Set.of(Role.ROLE_EXTERNAL))
                 .build();
 
         User saved = userRepository.save(user);
-        return new CreateUserResponse(saved.getId(), saved.getEmail());
+
+        return new CreateUserResponse(
+                saved.getId(),
+                saved.getEmail()
+        );
     }
 
     @Transactional
@@ -166,6 +191,15 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with id " + userId));
         user.setRoles(roles);
+
+        if (user.getEmail().equalsIgnoreCase(bootstrapAdminEmail)
+                && !roles.contains(Role.ROLE_SUPERADMIN)) {
+            throw new AccessDeniedException(
+                    "Não é possível remover a função de Super Administrador do administrador principal"
+            );
+        }
+
+
         userRepository.save(user);
         return new UserManagementDto(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRoles());
     }

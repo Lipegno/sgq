@@ -68,6 +68,7 @@ export function MacroProcessDiagramCard({ yearId, year }: Props) {
 
     const [uploadOpen, setUploadOpen] = useState(false);
     const [uploadFile, setUploadFile] = useState<File | null>(null);
+    const [uploadVersion, setUploadVersion] = useState("A");
     const [showHistory, setShowHistory] = useState(false);
 
     const queryKey = ["macro-process-diagram", yearId];
@@ -81,7 +82,7 @@ export function MacroProcessDiagramCard({ yearId, year }: Props) {
 
     const sortedVersions = [...versions].sort(
         (a: DocumentVersionResponse, b: DocumentVersionResponse) =>
-            b.version - a.version,
+            b.version.localeCompare(a.version),
     );
 
     const latestVersion = sortedVersions[0] ?? null;
@@ -89,14 +90,6 @@ export function MacroProcessDiagramCard({ yearId, year }: Props) {
     const currentApprovedVersion = versions.find(
         (v: DocumentVersionResponse) => v.status === "APPROVED",
     );
-
-    const nextVersion = versions.length
-        ? Math.max(
-            ...versions.map(
-                (v: DocumentVersionResponse) => v.version,
-            ),
-        ) + 1
-        : 1;
 
     const uploadMutation = useMutation({
         mutationFn: () => {
@@ -107,7 +100,7 @@ export function MacroProcessDiagramCard({ yearId, year }: Props) {
             return uploadMacroProcessDiagram(
                 yearId,
                 uploadFile,
-                nextVersion,
+                uploadVersion.trim(),
                 Number(user?.id ?? 1),
                 data?.document?.documentId ?? null,
             );
@@ -117,6 +110,7 @@ export function MacroProcessDiagramCard({ yearId, year }: Props) {
             toast.success("Diagrama carregado com sucesso!");
             queryClient.invalidateQueries({ queryKey });
             setUploadFile(null);
+            setUploadVersion("");
             setUploadOpen(false);
         },
 
@@ -214,6 +208,7 @@ export function MacroProcessDiagramCard({ yearId, year }: Props) {
                             <button
                                 onClick={() => {
                                     setUploadFile(null);
+                                    setUploadVersion("");
                                     setUploadOpen(true);
                                 }}
                                 className="flex items-center gap-2 bg-primary text-primary-foreground px-3 py-2 rounded-lg font-bold text-xs hover:bg-primary/90 transition-all shadow-sm cursor-pointer"
@@ -426,9 +421,14 @@ export function MacroProcessDiagramCard({ yearId, year }: Props) {
                                     Versão
                                 </label>
 
-                                <p className="px-4 py-3 bg-muted border border-border rounded-xl text-sm font-medium">
-                                    {nextVersion}
-                                </p>
+                                <input
+                                    type="text"
+                                    value={uploadVersion}
+                                    onChange={(e) => setUploadVersion(e.target.value)}
+                                    placeholder="Ex.: A"
+                                    maxLength={10}
+                                    className="w-full px-4 py-3 bg-muted border border-border rounded-xl text-sm font-medium text-foreground"
+                                />
                             </div>
 
                             <div>
@@ -482,7 +482,9 @@ export function MacroProcessDiagramCard({ yearId, year }: Props) {
                                 <button
                                     onClick={() => uploadMutation.mutate()}
                                     disabled={
-                                        !uploadFile || uploadMutation.isPending
+                                        !uploadFile ||
+                                        !uploadVersion.trim() ||
+                                        uploadMutation.isPending
                                     }
                                     className="flex-1 px-4 py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 text-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                 >

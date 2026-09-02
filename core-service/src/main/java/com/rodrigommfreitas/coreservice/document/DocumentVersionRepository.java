@@ -9,7 +9,7 @@ import java.util.Optional;
 
 @Repository
 public interface DocumentVersionRepository extends JpaRepository<DocumentVersion, Long> {
-    Optional<DocumentVersion> findByDocumentAndVersion(Document document, double version);
+    Optional<DocumentVersion> findByDocumentAndVersion(Document document, String version);
     Optional<DocumentVersion> findByDocumentAndStatus(Document document, DocumentStatus status);
     List<DocumentVersion> findByDocumentId(Long documentId);
     List<DocumentVersion> findByDocumentOrderByUploadedAtDesc(Document document);

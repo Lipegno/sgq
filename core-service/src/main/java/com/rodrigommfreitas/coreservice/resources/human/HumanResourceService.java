@@ -8,11 +8,14 @@ import com.rodrigommfreitas.coreservice.document.DocumentRepository;
 import com.rodrigommfreitas.coreservice.document.DocumentService;
 import com.rodrigommfreitas.coreservice.document.dto.DocumentResponse;
 import com.rodrigommfreitas.coreservice.document.dto.UploadDocumentRequest;
+import com.rodrigommfreitas.coreservice.indicator.IndicatorYearRepository;
+import com.rodrigommfreitas.coreservice.indicator.dto.HumanResourceResponsibilitiesResponse;
 import com.rodrigommfreitas.coreservice.log.ActionType;
 import com.rodrigommfreitas.coreservice.log.EntityType;
 import com.rodrigommfreitas.coreservice.log.LogService;
 import com.rodrigommfreitas.coreservice.log.dto.CreateLogRequest;
 import com.rodrigommfreitas.coreservice.log.utils.LogDetailsBuilder;
+import com.rodrigommfreitas.coreservice.process.ProcessYearRepository;
 import com.rodrigommfreitas.coreservice.resources.human.dto.*;
 import com.rodrigommfreitas.coreservice.security.UserContextHolder;
 import com.rodrigommfreitas.coreservice.year.Year;
@@ -38,6 +41,8 @@ public class HumanResourceService {
     private final DepartmentRepository departmentRepository;
     private final LogService logService;
     private final LogDetailsBuilder logDetailsBuilder;
+    private final ProcessYearRepository processYearRepository;
+    private final IndicatorYearRepository indicatorYearRepository;
 
 
     @Transactional
@@ -334,6 +339,42 @@ hr.getName() + " — " + String.valueOf(year.getYear()),
         return list.stream()
                 .map(this::mapToResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public HumanResourceResponsibilitiesResponse getResponsibilities(Long humanResourceYearId) {
+
+        HumanResourceYear hry = yearRepository.findById(humanResourceYearId)
+                .orElseThrow(() -> new RuntimeException("HumanResourceYear not found"));
+
+        var processes = processYearRepository
+                .findByResponsiblesId(hry.getId())
+                .stream()
+                .map(py ->
+                        new HumanResourceResponsibilitiesResponse.ProcessResponsibility(
+                                py.getId(),
+                                py.getProcess().getId(),
+                                py.getProcess().getName()
+                        )
+                )
+                .toList();
+
+        var indicators = indicatorYearRepository
+                .findByResponsibleId(hry.getId())
+                .stream()
+                .map(iy ->
+                        new HumanResourceResponsibilitiesResponse.IndicatorResponsibility(
+                                iy.getId(),
+                                iy.getIndicator().getId(),
+                                iy.getIndicator().getName()
+                        )
+                )
+                .toList();
+
+        return new HumanResourceResponsibilitiesResponse(
+                processes,
+                indicators
+        );
     }
 
     private HumanResourceResponse mapToResponse(HumanResourceYear hry) {

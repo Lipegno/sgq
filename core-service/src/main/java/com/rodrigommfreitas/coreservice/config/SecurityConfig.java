@@ -40,7 +40,6 @@ http
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/**").hasAnyRole("USER", "SUPERADMIN", "AUDITOR", "DEPARTMENT_MANAGER")
                         .requestMatchers(HttpMethod.PUT, "/api/**").hasAnyRole("USER", "SUPERADMIN", "AUDITOR", "DEPARTMENT_MANAGER")
                         .requestMatchers(HttpMethod.PATCH, "/api/**").hasAnyRole("USER", "SUPERADMIN", "AUDITOR", "DEPARTMENT_MANAGER")

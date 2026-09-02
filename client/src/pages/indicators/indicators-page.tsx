@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getIndicatorsByYear,
   createIndicator,
-  getUsers,
+  getHumanResourcesByYear,
   getYears,
 } from "@/api/core";
 import { IndicatorItem } from "./indicator-item";
@@ -73,18 +73,20 @@ const emptyForm: CreateForm = {
 export default function IndicatorsPage() {
   const queryClient = useQueryClient();
   const { isExternal } = useAuth();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [yearId, setYearId] = useState<number | null>(null);
   const [pageLogOpen, setPageLogOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState<CreateForm>(emptyForm);
 
-  const { data: users } = useQuery({
-    queryKey: ["users"],
-    queryFn: getUsers,
-  });
-
   const selectedYearId = yearId;
+
+  const { data: humanResources } = useQuery({
+    queryKey: ["human-resources", selectedYearId],
+    queryFn: () => getHumanResourcesByYear(selectedYearId!),
+    enabled: !!selectedYearId,
+  });
 
   const { data: allYears } = useQuery({
     queryKey: ["years"],
@@ -284,11 +286,16 @@ export default function IndicatorsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Nenhum</SelectItem>
-                    {users?.map((u) => (
-                      <SelectItem key={u.id} value={u.id.toString()}>
-                        {u.firstName} {u.lastName}
-                      </SelectItem>
-                    ))}
+                    {humanResources
+                      ?.filter((r) => r.isActive)
+                      .map((r) => (
+                        <SelectItem
+                            key={r.hryId}
+                            value={r.hryId.toString()}
+                        >
+                          {r.name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>

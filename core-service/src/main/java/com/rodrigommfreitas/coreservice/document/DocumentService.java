@@ -73,7 +73,7 @@ public class DocumentService {
         if (request.documentId() != null) {
             document = documentRepository.findById(request.documentId())
                     .orElseThrow(() -> new RuntimeException("Document not found"));
-            if (request.version() <= document.getCurrentVersion().getVersion()) {
+            if (request.version().compareTo(document.getCurrentVersion().getVersion())>0) {
                 throw new IllegalArgumentException("New version must be higher than current version");
             }
         } else {
@@ -222,7 +222,7 @@ public class DocumentService {
     }
 
     private DocumentResponse mapToResponse(Document document) {
-        Double currentVersionValue = null;
+        String currentVersionValue = null;
         if (document.getCurrentVersion() != null) {
             currentVersionValue = document.getCurrentVersion().getVersion();
         }

@@ -23,7 +23,7 @@ public class DocumentVersion {
     @JoinColumn(name = "document_id")
     private Document document;
 
-    private double version;
+    private String version;
 
     private String fileName;
     private String fileType;

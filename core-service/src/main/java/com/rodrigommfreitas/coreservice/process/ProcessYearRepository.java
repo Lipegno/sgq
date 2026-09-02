@@ -13,6 +13,7 @@ public interface ProcessYearRepository extends JpaRepository<ProcessYear, Long> 
     List<ProcessYear> findByYearIdAndMacroProcessYearIsNull(Long yearId);
     boolean existsByProcessIdAndYearId(Long processId, Long aLong);
     List<ProcessYear> findByYearId(Long yearId);
+    List<ProcessYear> findByResponsiblesId(Long humanResourceYearId);
 
     @Modifying
     @Query("UPDATE ProcessYear py SET py.macroProcessYear = NULL WHERE py.macroProcessYear.macroProcess.id = :macroProcessId")
