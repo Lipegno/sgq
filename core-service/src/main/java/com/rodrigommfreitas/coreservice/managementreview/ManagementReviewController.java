@@ -4,6 +4,7 @@ import com.rodrigommfreitas.coreservice.document.DocumentService;
 import com.rodrigommfreitas.coreservice.document.dto.DocumentResponse;
 import com.rodrigommfreitas.coreservice.document.dto.UploadDocumentRequest;
 import com.rodrigommfreitas.coreservice.managementreview.dto.ManagementReviewResponse;
+import com.rodrigommfreitas.coreservice.managementreview.dto.ManagementReviewSummaryResponse;
 import com.rodrigommfreitas.coreservice.managementreview.dto.ManagementReviewYearDetail;
 import com.rodrigommfreitas.coreservice.managementreview.dto.UpdateManagementReviewRequest;
 import lombok.RequiredArgsConstructor;
@@ -52,5 +53,11 @@ public class ManagementReviewController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteDocument(@PathVariable Long documentId) {
         service.deleteDocument(documentId);
+    }
+
+    @GetMapping("/year/{yearId}/summary")
+    @ResponseStatus(HttpStatus.OK)
+    public ManagementReviewSummaryResponse getSummary(@PathVariable Long yearId) {
+        return service.getSummary(yearId);
     }
 }

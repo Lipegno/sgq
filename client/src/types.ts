@@ -1075,3 +1075,68 @@ export interface HumanResourceResponsibilitiesResponse {
     name: string;
   }[];
 }
+
+export interface ManagementReviewSummaryResponse {
+  overview: {
+    processes: number;
+    processesWithResponsible: number;
+    processesWithoutResponsible: number;
+    indicators: number;
+    indicatorsWithMeasurements: number;
+    indicatorsWithoutMeasurements: number;
+    objectives: number;
+    objectivesAchieved: number;
+    objectivesInProgress: number;
+    nonConformities: number;
+    nonConformitiesOpen: number;
+    nonConformitiesResolved: number;
+  };
+  processes: {
+    processYearId: number;
+    processId: number;
+    name: string;
+    responsibles: string[];
+    indicatorCount: number;
+    indicatorsWithoutMeasurements: number;
+    indicators: {
+      indicatorYearId: number;
+      indicatorId: number;
+      name: string;
+      goal: number | null;
+      lastMeasurement: number | null;
+      lastMeasurementDate: string | null;
+      hasMeasurements: boolean;
+    }[];
+  }[];
+  objectives: {
+    qualityObjectiveYearId: number;
+    qualityObjectiveId: number;
+    name: string;
+    status: string;
+    processCount: number;
+    indicatorCount: number;
+  }[];
+  nonConformities: {
+    nonConformityYearId: number;
+    nonConformityId: number;
+    name: string;
+    origin: NonConformityOrigin;
+    status: NonConformityStatus;
+    correctiveActionCount: number;
+  }[];
+  actions: {
+    origin: string;
+    originName: string;
+    actionId: number;
+    title: string;
+    responsible: string;
+    status: "PENDING" | "IN_PROGRESS" | "FINISHED";
+    deadline: string | null;
+  }[];
+  documents: {
+    total: number;
+    inForce: number;
+    pendingApproval: number;
+    withoutApprovedVersion: number;
+  };
+}

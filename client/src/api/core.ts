@@ -30,6 +30,7 @@ import type {
   UpdateImprovementOpportunityYearRequest,
   MacroProcessDiagramResponse,
    HumanResourceResponsibilitiesResponse,
+   ManagementReviewSummaryResponse,
 } from "@/types.ts";
 
 export const getMacroProcessHierarchy = async (yearId: number): Promise<ProcessHierarchyResponse> => {
@@ -570,6 +571,8 @@ export const getManagementReviewByYear = async (yearId: number): Promise<Managem
   const res = await api.get(`/management-reviews/year/${yearId}`);
   return res.data;
 };
+
+
 
 export const uploadManagementReviewDocument = async (
   yearId: number,
@@ -1464,3 +1467,12 @@ export async function getHumanResourceResponsibilities(
 
   return response.data;
 }
+
+export const getManagementReviewSummary = async (
+  yearId: number
+): Promise<ManagementReviewSummaryResponse> => {
+  const res = await api.get(
+    `/management-reviews/year/${yearId}/summary`
+  );
+  return res.data;
+};

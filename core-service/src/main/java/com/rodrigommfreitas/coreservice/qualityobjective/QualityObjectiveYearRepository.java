@@ -11,4 +11,5 @@ public interface QualityObjectiveYearRepository extends JpaRepository<QualityObj
     boolean existsByQualityObjectiveIdAndYearId(Long qualityObjectiveId, Long yearId);
     List<QualityObjectiveYear> findAllByYearId(Long yearId);
     Optional<QualityObjectiveYear> findByQualityObjectiveIdAndYearId(Long qualityObjectiveId, Long yearId);
+    List<QualityObjectiveYear> findByYearId(Long yearId);
 }
