@@ -28,6 +28,8 @@ public class Infrastructure {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "responsible_id")
     private User responsible;
+
+    @Column(columnDefinition = "TEXT")
     private String maintenance;
 
     @OneToMany(mappedBy = "infrastructure", cascade = CascadeType.ALL, orphanRemoval = true)

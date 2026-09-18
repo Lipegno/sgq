@@ -52,6 +52,7 @@ public class NonConformity {
     @Column(columnDefinition = "TEXT")
     private String why;
 
+    @Column(columnDefinition = "TEXT")
     private String who;
 
     // "where" é uma palavra reservada no SQL (Postgres).

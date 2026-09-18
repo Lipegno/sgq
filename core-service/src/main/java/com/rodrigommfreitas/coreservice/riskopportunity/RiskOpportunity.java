@@ -20,6 +20,7 @@ public class RiskOpportunity {
 
     private String origin;
 
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     private String category;

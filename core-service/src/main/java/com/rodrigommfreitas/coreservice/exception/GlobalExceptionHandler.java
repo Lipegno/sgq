@@ -54,7 +54,10 @@ public class GlobalExceptionHandler {
 
         if (message != null) {
             String lower = message.toLowerCase();
-            if (lower.contains("indicator") && (lower.contains("name") || lower.contains("unique") || lower.contains("uk_") || lower.contains("duplicate"))) {
+            if (lower.contains("still referenced from table")) {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body(Map.of("message", "Não é possível eliminar este registo porque ainda está associado a outros dados na aplicação (ex.: processos, pessoas ou outros registos). Remova essas associações primeiro e tente novamente."));
+            } else if (lower.contains("indicator") && (lower.contains("name") || lower.contains("unique") || lower.contains("uk_") || lower.contains("duplicate"))) {
                 userMessage = "Já existe um indicador com este nome.";
             } else if (lower.contains("process") && lower.contains("name")) {
                 userMessage = "Já existe um processo com este nome para o ano selecionado.";

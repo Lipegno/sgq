@@ -1069,6 +1069,27 @@ export const disassociateRiskOpportunityYears = async (id: number, yearIds: numb
   await api.post(`/risk-opportunities/${id}/years/disassociate`, yearIds);
 };
 
+export const createRiskAction = async (
+  riskOpportunityYearId: number,
+  data: CreateRiskActionRequest,
+): Promise<RiskActionResponse> => {
+  const res = await api.post(`/risk-opportunities/${riskOpportunityYearId}/actions`, data);
+  return res.data;
+};
+
+export const updateRiskAction = async (
+  riskOpportunityYearId: number,
+  actionId: number,
+  data: UpdateRiskActionRequest,
+): Promise<RiskActionResponse> => {
+  const res = await api.patch(`/risk-opportunities/${riskOpportunityYearId}/actions/${actionId}`, data);
+  return res.data;
+};
+
+export const deleteRiskAction = async (riskOpportunityYearId: number, actionId: number): Promise<void> => {
+  await api.delete(`/risk-opportunities/${riskOpportunityYearId}/actions/${actionId}`);
+};
+
 /* USERS */
 
 export const getUsers = async (): Promise<UserManagementResponse[]> => {

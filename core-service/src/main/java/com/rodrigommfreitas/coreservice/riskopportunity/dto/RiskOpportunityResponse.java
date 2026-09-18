@@ -22,6 +22,7 @@ public record RiskOpportunityResponse (
     Integer probability,
     Integer riskLevel,
     RiskDecision decision,
-    List<ProcessOptionResponse> processes
+    List<ProcessOptionResponse> processes,
+    List<RiskActionResponse> actions
 ){
 }

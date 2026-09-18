@@ -33,6 +33,7 @@ import {
   Link as LinkIcon,
   X,
   History,
+  Activity,
 } from "lucide-react";
 import {
   getYears,
@@ -46,6 +47,9 @@ import {
   associateRiskProcesses,
   disassociateRiskProcesses,
   getRiskOpportunityYears,
+  createRiskAction,
+  updateRiskAction,
+  deleteRiskAction,
 } from "@/api/core";
 import YearAssociationDialog from "@/components/year-association-dialog";
 import ProcessAssociationDialog from "@/components/process-association-dialog";
@@ -57,6 +61,8 @@ import type {
   RiskDecision,
   ProcessOptionResponse,
   EntityType,
+  RiskActionResponse,
+  ActionStatus,
 } from "@/types";
 import { LogDialog } from "@/components/log-dialog";
 
@@ -89,6 +95,26 @@ const DECISION_OPTIONS: { value: RiskDecision; label: string }[] = [
   { value: "AVOID", label: "Evitar" },
 ];
 
+const RISK_ACTION_STATUS_LABELS: Record<ActionStatus, string> = {
+  OPEN: "Pendente",
+  IN_PROGRESS: "Em curso",
+  CLOSED: "Concluída",
+};
+
+const RISK_ACTION_STATUS_OPTIONS: { value: ActionStatus; label: string }[] = [
+  { value: "OPEN", label: "Pendente" },
+  { value: "IN_PROGRESS", label: "Em curso" },
+  { value: "CLOSED", label: "Concluída" },
+];
+
+function riskActionStatusSelectClass(status: ActionStatus) {
+  switch (status) {
+    case "CLOSED": return "bg-emerald-50 text-emerald-700 border-emerald-300";
+    case "IN_PROGRESS": return "bg-primary/10 text-primary border-primary/30";
+    default: return "bg-muted text-muted-foreground border-border";
+  }
+}
+
 function riskLevelColor(impact: number | null, probability: number | null) {
   const score = (impact ?? 0) * (probability ?? 0);
   if (score >= 15) return "bg-destructive/10 text-destructive border-destructive/30";
@@ -115,7 +141,7 @@ function decisionBadgeVariant(decision: RiskDecision | null) {
 
 export default function RisksOpportunitiesPage() {
   const queryClient = useQueryClient();
-  const { isExternal } = useAuth();
+  const { isExternal, user } = useAuth();
 
   const [selectedYearId, setSelectedYearId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<RiskOpportunityType>("RISK");
@@ -140,6 +166,10 @@ export default function RisksOpportunitiesPage() {
   const [optimisticProcesses, setOptimisticProcesses] = useState<ProcessOptionResponse[]>([]);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [pageLogOpen, setPageLogOpen] = useState(false);
+
+  const [actionDialogOpen, setActionDialogOpen] = useState(false);
+  const [newActionTitle, setNewActionTitle] = useState("");
+  const [newActionMethod, setNewActionMethod] = useState("");
 
   const viewOnly = isExternal && editItem !== null;
 
@@ -299,6 +329,46 @@ export default function RisksOpportunitiesPage() {
       });
     },
     onError: () => toast.error("Erro ao desassociar processo."),
+  });
+
+  const createActionMutation = useMutation({
+    mutationFn: ({ riskOpportunityYearId, data }: { riskOpportunityYearId: number; data: Parameters<typeof createRiskAction>[1] }) =>
+      createRiskAction(riskOpportunityYearId, data),
+    onSuccess: (action) => {
+      invalidateAll();
+      toast.success("Ação registada com sucesso.");
+      setEditItem((prev) => (prev ? { ...prev, actions: [...prev.actions, action] } : prev));
+      setActionDialogOpen(false);
+      setNewActionTitle("");
+      setNewActionMethod("");
+    },
+    onError: () => toast.error("Erro ao registar ação."),
+  });
+
+  const updateActionMutation = useMutation({
+    mutationFn: ({ riskOpportunityYearId, actionId, data }: { riskOpportunityYearId: number; actionId: number; data: Parameters<typeof updateRiskAction>[2] }) =>
+      updateRiskAction(riskOpportunityYearId, actionId, data),
+    onSuccess: (action) => {
+      invalidateAll();
+      toast.success("Ação atualizada com sucesso.");
+      setEditItem((prev) =>
+        prev ? { ...prev, actions: prev.actions.map((a) => (a.id === action.id ? action : a)) } : prev
+      );
+    },
+    onError: () => toast.error("Erro ao atualizar ação."),
+  });
+
+  const deleteActionMutation = useMutation({
+    mutationFn: ({ riskOpportunityYearId, actionId }: { riskOpportunityYearId: number; actionId: number }) =>
+      deleteRiskAction(riskOpportunityYearId, actionId),
+    onSuccess: (_data, variables) => {
+      invalidateAll();
+      toast.success("Ação eliminada com sucesso.");
+      setEditItem((prev) =>
+        prev ? { ...prev, actions: prev.actions.filter((a) => a.id !== variables.actionId) } : prev
+      );
+    },
+    onError: () => toast.error("Erro ao eliminar ação."),
   });
 
   function openCreate() {
@@ -659,6 +729,55 @@ export default function RisksOpportunitiesPage() {
                 </div>
               </div>
             )}
+
+            {/* Actions / Follow-up Section */}
+            {editItem && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                    <Activity size={14} />
+                    Ações / Acompanhamento
+                  </h4>
+                  {!ro && (
+                    <button
+                      onClick={() => setActionDialogOpen(true)}
+                      className="flex items-center gap-1 text-xs bg-primary/10 border border-primary/20 hover:border-primary/40 text-primary px-3 py-1.5 rounded-md transition-all cursor-pointer"
+                    >
+                      <Plus size={12} />
+                      Nova Ação
+                    </button>
+                  )}
+                </div>
+                <div className="space-y-3">
+                  {editItem.actions.length > 0 ? (
+                    editItem.actions.map((action) => (
+                      <RiskActionCard
+                        key={action.id}
+                        action={action}
+                        isExternal={isExternal}
+                        onEdit={(data) =>
+                          updateActionMutation.mutate({
+                            riskOpportunityYearId: editItem.riskOpportunityYearId,
+                            actionId: action.id,
+                            data,
+                          })
+                        }
+                        onDelete={() =>
+                          deleteActionMutation.mutate({
+                            riskOpportunityYearId: editItem.riskOpportunityYearId,
+                            actionId: action.id,
+                          })
+                        }
+                      />
+                    ))
+                  ) : (
+                    <div className="py-6 text-center border-2 border-dashed border-border rounded-lg text-muted-foreground text-sm">
+                      Nenhuma ação ou acompanhamento registado.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
           );
           })()}
@@ -680,6 +799,63 @@ export default function RisksOpportunitiesPage() {
                 </Button>
               </>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* New Action Dialog */}
+      <Dialog open={actionDialogOpen} onOpenChange={setActionDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Activity size={20} />
+              Nova Ação
+            </DialogTitle>
+            <DialogDescription>
+              Registe uma ação ou medida de tratamento/acompanhamento.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="flex flex-col gap-1.5">
+              <Label>Título da Ação</Label>
+              <Input
+                value={newActionTitle}
+                onChange={(e) => setNewActionTitle(e.target.value)}
+                placeholder="Ex: Rever procedimento de contingência"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Método de Avaliação de Eficácia</Label>
+              <textarea
+                className="w-full h-20 px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground resize-none outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                value={newActionMethod}
+                onChange={(e) => setNewActionMethod(e.target.value)}
+                placeholder="Como vai ser avaliado se a ação foi eficaz..."
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancelar</Button>
+            </DialogClose>
+            <Button
+              onClick={() => {
+                if (!editItem) return;
+                createActionMutation.mutate({
+                  riskOpportunityYearId: editItem.riskOpportunityYearId,
+                  data: {
+                    title: newActionTitle.trim(),
+                    responsibleId: user?.id ?? null,
+                    effectivenessEvaluationMethod: newActionMethod.trim() || null,
+                  },
+                });
+              }}
+              disabled={!newActionTitle.trim() || createActionMutation.isPending}
+            >
+              {createActionMutation.isPending ? "A registar..." : "Registar"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1081,6 +1257,224 @@ function MatrixView({ items }: { items: RiskOpportunityResponse[] }) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function RiskActionCard({
+  action,
+  isExternal,
+  onEdit,
+  onDelete,
+}: {
+  action: RiskActionResponse;
+  isExternal: boolean;
+  onEdit: (data: {
+    title?: string;
+    effectivenessEvaluationMethod?: string | null;
+    status?: ActionStatus;
+    notes?: string | null;
+    monitoringQ1?: string | null;
+    monitoringQ2?: string | null;
+    monitoringQ3?: string | null;
+    monitoringQ4?: string | null;
+  }) => void;
+  onDelete: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(action.title);
+  const [editMethod, setEditMethod] = useState(action.effectivenessEvaluationMethod ?? "");
+  const [editNotes, setEditNotes] = useState(action.notes ?? "");
+  const [editQ1, setEditQ1] = useState(action.monitoringQ1 ?? "");
+  const [editQ2, setEditQ2] = useState(action.monitoringQ2 ?? "");
+  const [editQ3, setEditQ3] = useState(action.monitoringQ3 ?? "");
+  const [editQ4, setEditQ4] = useState(action.monitoringQ4 ?? "");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [menuOpen]);
+
+  function handleSave() {
+    onEdit({
+      title: editTitle.trim(),
+      effectivenessEvaluationMethod: editMethod.trim() || null,
+      notes: editNotes.trim() || null,
+      monitoringQ1: editQ1.trim() || null,
+      monitoringQ2: editQ2.trim() || null,
+      monitoringQ3: editQ3.trim() || null,
+      monitoringQ4: editQ4.trim() || null,
+    });
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <div className="border border-border rounded-xl p-5 bg-card shadow-sm">
+        <h4 className="font-bold text-foreground mb-4">Editar Ação</h4>
+        <div className="space-y-3">
+          <div>
+            <Label>Título</Label>
+            <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+          </div>
+          <div>
+            <Label>Método de Avaliação de Eficácia</Label>
+            <textarea
+              className="w-full h-20 px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground resize-none outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+              value={editMethod}
+              onChange={(e) => setEditMethod(e.target.value)}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label>Acompanhamento 1º Trim.</Label>
+              <Input value={editQ1} onChange={(e) => setEditQ1(e.target.value)} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Acompanhamento 2º Trim.</Label>
+              <Input value={editQ2} onChange={(e) => setEditQ2(e.target.value)} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Acompanhamento 3º Trim.</Label>
+              <Input value={editQ3} onChange={(e) => setEditQ3(e.target.value)} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Acompanhamento 4º Trim.</Label>
+              <Input value={editQ4} onChange={(e) => setEditQ4(e.target.value)} />
+            </div>
+          </div>
+          <div>
+            <Label>Estado/Ponto da Situação (Observações)</Label>
+            <textarea
+              className="w-full h-20 px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground resize-none outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+              value={editNotes}
+              onChange={(e) => setEditNotes(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2 pt-2">
+            <Button size="sm" onClick={handleSave}>Guardar</Button>
+            <Button size="sm" variant="outline" onClick={() => setEditing(false)}>Cancelar</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border border-border rounded-xl p-5 bg-card shadow-sm hover:shadow-md transition-all">
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-primary/10 text-primary rounded-lg flex items-center justify-center font-bold text-sm">
+            {action.title.charAt(0)}
+          </div>
+          <div>
+            <h4 className="font-bold text-foreground">{action.title}</h4>
+            {action.responsible && (
+              <p className="text-xs text-muted-foreground">
+                Responsável: {action.responsible.firstName} {action.responsible.lastName}
+              </p>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <select
+            value={action.status}
+            onChange={(e) => onEdit({ status: e.target.value as ActionStatus })}
+            className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest border cursor-pointer transition-all outline-none ${riskActionStatusSelectClass(action.status)}`}
+          >
+            {RISK_ACTION_STATUS_OPTIONS.map((s) => (
+              <option key={s.value} value={s.value} className="text-foreground bg-card">{s.label}</option>
+            ))}
+          </select>
+          <div className="relative" ref={menuRef}>
+            {!isExternal && (
+              <button
+                onClick={() => setMenuOpen((prev) => !prev)}
+                className="p-1.5 hover:bg-muted rounded-lg transition-colors cursor-pointer"
+              >
+                <MoreVertical size={14} className="text-muted-foreground" />
+              </button>
+            )}
+            {menuOpen && !isExternal && (
+              <div className="absolute right-0 top-full mt-1 bg-card border border-border rounded-xl shadow-lg z-50 py-1 min-w-[140px]">
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setEditTitle(action.title);
+                    setEditMethod(action.effectivenessEvaluationMethod ?? "");
+                    setEditNotes(action.notes ?? "");
+                    setEditQ1(action.monitoringQ1 ?? "");
+                    setEditQ2(action.monitoringQ2 ?? "");
+                    setEditQ3(action.monitoringQ3 ?? "");
+                    setEditQ4(action.monitoringQ4 ?? "");
+                    setEditing(true);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors text-left cursor-pointer"
+                >
+                  <Pencil size={13} />
+                  Editar
+                </button>
+                <div className="border-t border-border my-1" />
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setConfirmOpen(true);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors text-left cursor-pointer"
+                >
+                  <Trash2 size={13} />
+                  Eliminar
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {action.effectivenessEvaluationMethod && (
+        <p className="text-sm text-muted-foreground mb-4 border-l-2 border-primary/20 pl-4">
+          {action.effectivenessEvaluationMethod}
+        </p>
+      )}
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-4 border-t border-border">
+        {[
+          { label: "1º Trim.", value: action.monitoringQ1 },
+          { label: "2º Trim.", value: action.monitoringQ2 },
+          { label: "3º Trim.", value: action.monitoringQ3 },
+          { label: "4º Trim.", value: action.monitoringQ4 },
+        ].map((q) => (
+          <div key={q.label}>
+            <h5 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+              {q.label}
+            </h5>
+            <p className="text-xs text-foreground">{q.value || "—"}</p>
+          </div>
+        ))}
+      </div>
+
+      {action.notes && (
+        <p className="text-sm text-muted-foreground mt-4 pt-4 border-t border-border">
+          {action.notes}
+        </p>
+      )}
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Eliminar Ação"
+        description="Tem a certeza que deseja eliminar esta ação?"
+        onConfirm={onDelete}
+      />
     </div>
   );
 }

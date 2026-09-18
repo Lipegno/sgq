@@ -96,4 +96,34 @@ public class RiskOpportunityController {
     ) {
         service.disassociateYears(id, yearIds);
     }
+
+    // --- Ações / Acompanhamento ---
+
+    @PostMapping("/{riskOpportunityYearId}/actions")
+    @ResponseStatus(HttpStatus.CREATED)
+    public RiskActionResponse createAction(
+            @PathVariable Long riskOpportunityYearId,
+            @RequestBody CreateRiskActionRequest request
+    ) {
+        return service.createAction(riskOpportunityYearId, request);
+    }
+
+    @PatchMapping("/{riskOpportunityYearId}/actions/{actionId}")
+    @ResponseStatus(HttpStatus.OK)
+    public RiskActionResponse updateAction(
+            @PathVariable Long riskOpportunityYearId,
+            @PathVariable Long actionId,
+            @RequestBody UpdateRiskActionRequest request
+    ) {
+        return service.updateAction(riskOpportunityYearId, actionId, request);
+    }
+
+    @DeleteMapping("/{riskOpportunityYearId}/actions/{actionId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteAction(
+            @PathVariable Long riskOpportunityYearId,
+            @PathVariable Long actionId
+    ) {
+        service.deleteAction(riskOpportunityYearId, actionId);
+    }
 }

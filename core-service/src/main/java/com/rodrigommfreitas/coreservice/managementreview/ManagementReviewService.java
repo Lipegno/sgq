@@ -32,6 +32,10 @@ import com.rodrigommfreitas.coreservice.qualityobjective.ObjectiveAction;
 import com.rodrigommfreitas.coreservice.qualityobjective.QualityObjectiveStatus;
 import com.rodrigommfreitas.coreservice.qualityobjective.QualityObjectiveYear;
 import com.rodrigommfreitas.coreservice.qualityobjective.QualityObjectiveYearRepository;
+import com.rodrigommfreitas.coreservice.riskopportunity.ActionStatus;
+import com.rodrigommfreitas.coreservice.riskopportunity.RiskAction;
+import com.rodrigommfreitas.coreservice.riskopportunity.RiskOpportunityYear;
+import com.rodrigommfreitas.coreservice.riskopportunity.RiskOpportunityYearRepository;
 import com.rodrigommfreitas.coreservice.security.UserContextHolder;
 import com.rodrigommfreitas.coreservice.user.User;
 import com.rodrigommfreitas.coreservice.user.UserRepository;
@@ -61,6 +65,7 @@ public class ManagementReviewService {
     private final QualityObjectiveYearRepository qualityObjectiveYearRepository;
     private final NonConformityYearRepository nonConformityYearRepository;
     private final ImprovementOpportunityYearRepository improvementOpportunityYearRepository;
+    private final RiskOpportunityYearRepository riskOpportunityYearRepository;
     private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
@@ -231,6 +236,10 @@ public class ManagementReviewService {
         // 5) Buscar todas as oportunidades de melhoria do ciclo
         List<ImprovementOpportunityYear> improvementOpportunityYears =
                 improvementOpportunityYearRepository.findAllByYearId(yearId);
+
+        // 6) Buscar todos os riscos e oportunidades do ciclo
+        List<RiskOpportunityYear> riskOpportunityYears =
+                riskOpportunityYearRepository.findByYearId(yearId);
 
         // ----------------------------------------------------------------------
         // OVERVIEW
@@ -451,6 +460,20 @@ public class ManagementReviewService {
             }
         }
 
+        for (RiskOpportunityYear roy : riskOpportunityYears) {
+            for (RiskAction action : roy.getActions()) {
+                actionSummaries.add(new ManagementReviewSummaryResponse.ActionSummary(
+                        "Risco / Oportunidade",
+                        roy.getRiskOpportunity().getDescription(),
+                        action.getId(),
+                        action.getTitle(),
+                        userDisplayName(action.getResponsible()),
+                        normalizeStatus(action.getStatus()),
+                        null
+                ));
+            }
+        }
+
         actionSummaries.sort(
                 Comparator.comparing(ManagementReviewSummaryResponse.ActionSummary::origin)
                         .thenComparing(ManagementReviewSummaryResponse.ActionSummary::title,
@@ -544,6 +567,15 @@ public class ManagementReviewService {
             case REGISTERED -> "PENDING";
             case IN_PROGRESS -> "IN_PROGRESS";
             case FINISHED -> "FINISHED";
+        };
+    }
+
+    private String normalizeStatus(ActionStatus status) {
+        if (status == null) return "PENDING";
+        return switch (status) {
+            case OPEN -> "PENDING";
+            case IN_PROGRESS -> "IN_PROGRESS";
+            case CLOSED -> "FINISHED";
         };
     }
 

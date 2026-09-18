@@ -53,6 +53,7 @@ public class ImprovementOpportunity {
     @Column(columnDefinition = "TEXT")
     private String why;
 
+    @Column(columnDefinition = "TEXT")
     private String who;
 
     // "where" é uma palavra reservada no PostgreSQL.

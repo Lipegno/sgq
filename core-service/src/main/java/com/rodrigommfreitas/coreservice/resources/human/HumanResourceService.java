@@ -52,8 +52,11 @@ public class HumanResourceService {
             throw new IllegalArgumentException("At least one year must be provided");
         }
 
-        Department department = departmentRepository.findById(request.departmentId())
-                .orElseThrow(() -> new RuntimeException("Department not found"));
+        Department department = null;
+        if (request.departmentId() != null) {
+            department = departmentRepository.findById(request.departmentId())
+                    .orElseThrow(() -> new RuntimeException("Department not found"));
+        }
 
         // 🔹 Create base entity
         HumanResource hr = HumanResource.builder()
@@ -89,7 +92,7 @@ public class HumanResourceService {
             Map<String, Object> fields = Map.of(
                     "name", hr.getName(),
                     "function", hr.getFunction() != null ? hr.getFunction() : "",
-                    "department", hr.getDepartment() != null ? hr.getDepartment() : "",
+                    "department", hr.getDepartment() != null ? hr.getDepartment().getName() : "",
                     "year", hry.getYear().getYear()
             );
             JsonNode detailsNode = logDetailsBuilder.buildCreated(fields);
@@ -188,12 +191,14 @@ public class HumanResourceService {
         Map<String, Object> oldFields = new LinkedHashMap<>();
         oldFields.put("name", hr.getName());
         oldFields.put("function", hr.getFunction() != null ? hr.getFunction() : "");
-        oldFields.put("department", hr.getDepartment() != null ? hr.getDepartment() : "");
+        oldFields.put("department", hr.getDepartment() != null ? hr.getDepartment().getName() : "");
 
         if (request.name() != null) hr.setName(request.name());
         if (request.function() != null) hr.setFunction(request.function());
 
-        if (request.departmentId() != null) {
+        if (request.removeDepartment()) {
+            hr.setDepartment(null);
+        } else if (request.departmentId() != null) {
             Department department = departmentRepository.findById(request.departmentId())
                     .orElseThrow(() -> new RuntimeException("Department not found"));
 
@@ -219,7 +224,7 @@ public class HumanResourceService {
         Map<String, Object> newFields = new LinkedHashMap<>();
         newFields.put("name", hr.getName());
         newFields.put("function", hr.getFunction() != null ? hr.getFunction() : "");
-        newFields.put("department", hr.getDepartment() != null ? hr.getDepartment() : "");
+        newFields.put("department", hr.getDepartment() != null ? hr.getDepartment().getName() : "");
         if (yearId != null) {
             newFields.put("isActive", request.isActive());
         }

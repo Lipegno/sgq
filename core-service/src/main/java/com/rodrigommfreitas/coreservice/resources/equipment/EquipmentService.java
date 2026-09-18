@@ -259,7 +259,7 @@ equipment.getName() + " — " + String.valueOf(year.getYear()),
 
         Long userId = UserContextHolder.getUserId();
         Map<String, Object> fields = Map.of(
-                "date", request.date(),
+                "date", request.date() != null ? request.date().toString() : "",
                 "type", request.type() != null ? request.type() : "",
                 "performedBy", request.performedBy() != null ? request.performedBy() : "",
                 "equipmentName", equipment.getName()
@@ -298,7 +298,7 @@ equipment.getName() + " — " + String.valueOf(year.getYear()),
         Equipment equipment = record.getEquipment();
         Long userId = UserContextHolder.getUserId();
         Map<String, Object> fields = Map.of(
-                "date", record.getDate(),
+                "date", record.getDate() != null ? record.getDate().toString() : "",
                 "type", record.getType() != null ? record.getType() : "",
                 "equipmentName", equipment.getName()
         );
@@ -337,7 +337,7 @@ equipment.getName() + " — " + String.valueOf(year.getYear()),
 
         Long userId = UserContextHolder.getUserId();
         Map<String, Object> fields = Map.of(
-                "date", request.date(),
+                "date", request.date() != null ? request.date().toString() : "",
                 "result", request.result() != null ? request.result() : "",
                 "performedBy", request.performedBy() != null ? request.performedBy() : "",
                 "equipmentName", equipment.getName()
@@ -376,7 +376,7 @@ equipment.getName() + " — " + String.valueOf(year.getYear()),
         Equipment equipment = record.getEquipment();
         Long userId = UserContextHolder.getUserId();
         Map<String, Object> fields = Map.of(
-                "date", record.getDate(),
+                "date", record.getDate() != null ? record.getDate().toString() : "",
                 "result", record.getResult() != null ? record.getResult() : "",
                 "equipmentName", equipment.getName()
         );

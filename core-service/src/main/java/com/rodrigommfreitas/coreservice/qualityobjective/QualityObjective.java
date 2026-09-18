@@ -20,7 +20,10 @@ public class QualityObjective {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(columnDefinition = "TEXT")
     private String objectiveTitle;
+
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @JsonIgnore

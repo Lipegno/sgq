@@ -7,6 +7,7 @@ public record UpdateHumanResourceRequest(
         String name,
         String function,
         Long departmentId,
+        boolean removeDepartment,
         List<String> competencies,
         Long yearId,
         boolean isActive

@@ -71,8 +71,7 @@ public record ManagementReviewSummaryResponse(
 
     /**
      * Ação agregada a partir dos módulos que já têm o seu próprio plano de ação
-     * (Não Conformidades, Objetivos da Qualidade, Oportunidades de Melhoria).
-     * Riscos e Oportunidades ainda não tem formulário de ações na aplicação, por isso fica de fora.
+     * (Não Conformidades, Objetivos da Qualidade, Oportunidades de Melhoria, Riscos e Oportunidades).
      * status é normalizado para "PENDING" | "IN_PROGRESS" | "FINISHED".
      */
     public record ActionSummary(

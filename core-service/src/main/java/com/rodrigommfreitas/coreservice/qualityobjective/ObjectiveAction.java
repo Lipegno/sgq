@@ -18,6 +18,8 @@ public class ObjectiveAction {
     private String actionText;
 
     private String deadline;
+
+    @Column(columnDefinition = "TEXT")
     private String resources;
 
     @Column(name = "responsible_id")

@@ -721,6 +721,37 @@ export type RiskOpportunityType = "RISK" | "OPPORTUNITY";
 export type RiskDecision = "ACCEPT" | "MITIGATE" | "TRANSFER" | "AVOID";
 export type ActionStatus = "OPEN" | "IN_PROGRESS" | "CLOSED";
 
+export interface RiskActionResponse {
+  id: number;
+  title: string;
+  responsible: UserSummary | null;
+  effectivenessEvaluationMethod: string | null;
+  status: ActionStatus;
+  notes: string | null;
+  monitoringQ1: string | null;
+  monitoringQ2: string | null;
+  monitoringQ3: string | null;
+  monitoringQ4: string | null;
+}
+
+export interface CreateRiskActionRequest {
+  title: string;
+  responsibleId?: number | null;
+  effectivenessEvaluationMethod?: string | null;
+}
+
+export interface UpdateRiskActionRequest {
+  title?: string;
+  responsibleId?: number | null;
+  effectivenessEvaluationMethod?: string | null;
+  status?: ActionStatus;
+  notes?: string | null;
+  monitoringQ1?: string | null;
+  monitoringQ2?: string | null;
+  monitoringQ3?: string | null;
+  monitoringQ4?: string | null;
+}
+
 export interface RiskOpportunityResponse {
   id: number;
   riskOpportunityYearId: number;
@@ -736,6 +767,7 @@ export interface RiskOpportunityResponse {
   riskLevel: number | null;
   decision: RiskDecision | null;
   processes: ProcessOptionResponse[];
+  actions: RiskActionResponse[];
 }
 
 export interface RiskOpportunityGroupedResponse {
@@ -888,6 +920,7 @@ export interface UpdateHumanResourceRequest {
   name?: string;
   function?: string;
   departmentId?: number | null;
+  removeDepartment?: boolean;
   yearId?: number;
   isActive?: boolean;
 }

@@ -8,13 +8,17 @@ import com.rodrigommfreitas.coreservice.log.utils.LogDetailsBuilder;
 import com.rodrigommfreitas.coreservice.process.ProcessYear;
 import com.rodrigommfreitas.coreservice.process.ProcessYearRepository;
 import com.rodrigommfreitas.coreservice.process.dto.ProcessOptionResponse;
+import com.rodrigommfreitas.coreservice.riskopportunity.dto.CreateRiskActionRequest;
+import com.rodrigommfreitas.coreservice.riskopportunity.dto.RiskActionResponse;
 import com.rodrigommfreitas.coreservice.riskopportunity.dto.RiskOpportunityCreateRequest;
 import com.rodrigommfreitas.coreservice.riskopportunity.dto.RiskOpportunityGroupedResponse;
 import com.rodrigommfreitas.coreservice.riskopportunity.dto.RiskOpportunityResponse;
+import com.rodrigommfreitas.coreservice.riskopportunity.dto.UpdateRiskActionRequest;
 import com.rodrigommfreitas.coreservice.riskopportunity.dto.UpdateRiskOpportunityRequest;
 import com.rodrigommfreitas.coreservice.security.UserContextHolder;
 import com.rodrigommfreitas.coreservice.user.Role;
 import com.rodrigommfreitas.coreservice.user.User;
+import com.rodrigommfreitas.coreservice.user.UserReferenceService;
 import com.rodrigommfreitas.coreservice.user.UserRepository;
 import com.rodrigommfreitas.coreservice.year.Year;
 import com.rodrigommfreitas.coreservice.year.YearRepository;
@@ -31,9 +35,11 @@ public class RiskOpportunityService {
 
     private final RiskOpportunityYearRepository riskOpportunityYearRepository;
     private final RiskOpportunityRepository riskOpportunityRepository;
+    private final RiskActionRepository riskActionRepository;
     private final ProcessYearRepository processYearRepository;
     private final YearRepository yearRepository;
     private final UserRepository userRepository;
+    private final UserReferenceService userRefService;
     private final LogService logService;
     private final LogDetailsBuilder logDetailsBuilder;
 
@@ -454,8 +460,171 @@ entityName + " — " + yearValue,
                 ry.getProbability(),
                 ry.getRiskLevel(),
                 ry.getDecision(),
-                processes
+                processes,
+                ry.getActions() != null
+                        ? ry.getActions().stream().map(this::mapToActionResponse).toList()
+                        : List.of()
         );
+    }
+
+    private RiskActionResponse mapToActionResponse(RiskAction action) {
+        return new RiskActionResponse(
+                action.getId(),
+                action.getTitle(),
+                userRefService.fromEntity(action.getResponsible()),
+                action.getEffectivenessEvaluationMethod(),
+                action.getStatus(),
+                action.getNotes(),
+                action.getMonitoringQ1(),
+                action.getMonitoringQ2(),
+                action.getMonitoringQ3(),
+                action.getMonitoringQ4()
+        );
+    }
+
+    @Transactional
+    public RiskActionResponse createAction(Long riskOpportunityYearId, CreateRiskActionRequest request) {
+        RiskOpportunityYear riskOpportunityYear = riskOpportunityYearRepository.findById(riskOpportunityYearId)
+                .orElseThrow(() -> new RuntimeException("RiskOpportunityYear not found"));
+
+        User responsible = request.responsibleId() != null
+                ? userRepository.findById(request.responsibleId()).orElse(null)
+                : null;
+
+        RiskAction action = RiskAction.builder()
+                .title(request.title())
+                .responsible(responsible)
+                .effectivenessEvaluationMethod(request.effectivenessEvaluationMethod())
+                .status(ActionStatus.OPEN)
+                .riskOpportunityYear(riskOpportunityYear)
+                .build();
+
+        riskActionRepository.save(action);
+        riskOpportunityYear.getActions().add(action);
+
+        String typeLabel = riskOpportunityYear.getRiskOpportunity().getType() == RiskOpportunityType.RISK ? "Risco" : "Oportunidade";
+        String entityName = typeLabel + " — " + riskOpportunityYear.getRiskOpportunity().getDescription();
+
+        Long userId = UserContextHolder.getUserId();
+        Map<String, Object> fields = new LinkedHashMap<>();
+        fields.put("title", action.getTitle() != null ? action.getTitle() : "");
+        fields.put("responsible", action.getResponsible() != null ? userDisplayName(action.getResponsible()) : "");
+        fields.put("effectivenessEvaluationMethod", action.getEffectivenessEvaluationMethod() != null ? action.getEffectivenessEvaluationMethod() : "");
+        logService.createLog(new CreateLogRequest(
+                userId,
+                EntityType.RISK_ACTION,
+                action.getId(),
+                riskOpportunityYear.getId(),
+                riskOpportunityYear.getYear().getId(),
+                entityName,
+                ActionType.CREATED,
+                logDetailsBuilder.buildCreated(fields)
+        ));
+
+        return mapToActionResponse(action);
+    }
+
+    @Transactional
+    public RiskActionResponse updateAction(Long riskOpportunityYearId, Long actionId, UpdateRiskActionRequest request) {
+        RiskAction action = riskActionRepository.findById(actionId)
+                .orElseThrow(() -> new RuntimeException("RiskAction not found"));
+
+        if (!action.getRiskOpportunityYear().getId().equals(riskOpportunityYearId)) {
+            throw new RuntimeException("RiskAction does not belong to RiskOpportunityYear " + riskOpportunityYearId);
+        }
+
+        Map<String, Object> oldFields = new LinkedHashMap<>();
+        oldFields.put("title", action.getTitle() != null ? action.getTitle() : "");
+        oldFields.put("responsible", action.getResponsible() != null ? userDisplayName(action.getResponsible()) : "");
+        oldFields.put("effectivenessEvaluationMethod", action.getEffectivenessEvaluationMethod() != null ? action.getEffectivenessEvaluationMethod() : "");
+        oldFields.put("status", action.getStatus() != null ? action.getStatus().name() : "");
+        oldFields.put("notes", action.getNotes() != null ? action.getNotes() : "");
+        oldFields.put("monitoringQ1", action.getMonitoringQ1() != null ? action.getMonitoringQ1() : "");
+        oldFields.put("monitoringQ2", action.getMonitoringQ2() != null ? action.getMonitoringQ2() : "");
+        oldFields.put("monitoringQ3", action.getMonitoringQ3() != null ? action.getMonitoringQ3() : "");
+        oldFields.put("monitoringQ4", action.getMonitoringQ4() != null ? action.getMonitoringQ4() : "");
+
+        if (request.title() != null) action.setTitle(request.title());
+        if (request.responsibleId() != null) {
+            User responsible = userRepository.findById(request.responsibleId()).orElse(null);
+            action.setResponsible(responsible);
+        }
+        if (request.effectivenessEvaluationMethod() != null) action.setEffectivenessEvaluationMethod(request.effectivenessEvaluationMethod());
+        if (request.status() != null) action.setStatus(request.status());
+        if (request.notes() != null) action.setNotes(request.notes());
+        if (request.monitoringQ1() != null) action.setMonitoringQ1(request.monitoringQ1());
+        if (request.monitoringQ2() != null) action.setMonitoringQ2(request.monitoringQ2());
+        if (request.monitoringQ3() != null) action.setMonitoringQ3(request.monitoringQ3());
+        if (request.monitoringQ4() != null) action.setMonitoringQ4(request.monitoringQ4());
+
+        riskActionRepository.save(action);
+
+        Map<String, Object> newFields = new LinkedHashMap<>();
+        newFields.put("title", action.getTitle() != null ? action.getTitle() : "");
+        newFields.put("responsible", action.getResponsible() != null ? userDisplayName(action.getResponsible()) : "");
+        newFields.put("effectivenessEvaluationMethod", action.getEffectivenessEvaluationMethod() != null ? action.getEffectivenessEvaluationMethod() : "");
+        newFields.put("status", action.getStatus() != null ? action.getStatus().name() : "");
+        newFields.put("notes", action.getNotes() != null ? action.getNotes() : "");
+        newFields.put("monitoringQ1", action.getMonitoringQ1() != null ? action.getMonitoringQ1() : "");
+        newFields.put("monitoringQ2", action.getMonitoringQ2() != null ? action.getMonitoringQ2() : "");
+        newFields.put("monitoringQ3", action.getMonitoringQ3() != null ? action.getMonitoringQ3() : "");
+        newFields.put("monitoringQ4", action.getMonitoringQ4() != null ? action.getMonitoringQ4() : "");
+
+        if (!oldFields.equals(newFields)) {
+            RiskOpportunityYear riskOpportunityYear = action.getRiskOpportunityYear();
+            String typeLabel = riskOpportunityYear.getRiskOpportunity().getType() == RiskOpportunityType.RISK ? "Risco" : "Oportunidade";
+            String entityName = typeLabel + " — " + riskOpportunityYear.getRiskOpportunity().getDescription();
+            Long userId = UserContextHolder.getUserId();
+            logService.createLog(new CreateLogRequest(
+                    userId,
+                    EntityType.RISK_ACTION,
+                    action.getId(),
+                    riskOpportunityYear.getId(),
+                    riskOpportunityYear.getYear().getId(),
+                    entityName,
+                    ActionType.UPDATED,
+                    logDetailsBuilder.buildUpdated(oldFields, newFields)
+            ));
+        }
+
+        return mapToActionResponse(action);
+    }
+
+    @Transactional
+    public void deleteAction(Long riskOpportunityYearId, Long actionId) {
+        RiskAction action = riskActionRepository.findById(actionId)
+                .orElseThrow(() -> new RuntimeException("RiskAction not found"));
+
+        if (!action.getRiskOpportunityYear().getId().equals(riskOpportunityYearId)) {
+            throw new RuntimeException("RiskAction does not belong to RiskOpportunityYear " + riskOpportunityYearId);
+        }
+
+        RiskOpportunityYear riskOpportunityYear = action.getRiskOpportunityYear();
+        String typeLabel = riskOpportunityYear.getRiskOpportunity().getType() == RiskOpportunityType.RISK ? "Risco" : "Oportunidade";
+        String entityName = typeLabel + " — " + riskOpportunityYear.getRiskOpportunity().getDescription();
+
+        Long userId = UserContextHolder.getUserId();
+        Map<String, Object> fields = Map.of("title", action.getTitle() != null ? action.getTitle() : "");
+        logService.createLog(new CreateLogRequest(
+                userId,
+                EntityType.RISK_ACTION,
+                action.getId(),
+                riskOpportunityYear.getId(),
+                riskOpportunityYear.getYear().getId(),
+                entityName,
+                ActionType.DELETED,
+                logDetailsBuilder.buildDeleted(fields)
+        ));
+
+        riskOpportunityYear.getActions().remove(action);
+        riskActionRepository.delete(action);
+    }
+
+    private String userDisplayName(User user) {
+        if (user == null) return "";
+        String first = user.getFirstName() != null ? user.getFirstName() : "";
+        String last = user.getLastName() != null ? user.getLastName() : "";
+        return (first + " " + last).trim();
     }
 
     private int calculateRiskLevel(Integer impact, Integer probability) {

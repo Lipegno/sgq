@@ -600,6 +600,7 @@ export default function ResourcesPage() {
             name: personForm.name.trim(),
             function: personForm.function.trim(),
             departmentId: personForm.departmentId,
+            removeDepartment: personForm.departmentId === null,
             yearId: effectiveYearId ?? undefined,
             isActive: personIsActive,
           },
@@ -1248,12 +1249,12 @@ export default function ResourcesPage() {
                   value={
                     personForm.departmentId != null
                       ? String(personForm.departmentId)
-                      : undefined
+                      : "none"
                   }
                   onValueChange={val =>
                     setPersonForm(p => ({
                       ...p,
-                      departmentId: Number(val),
+                      departmentId: val === "none" ? null : Number(val),
                     }))
                   }
                 >
@@ -1262,6 +1263,7 @@ export default function ResourcesPage() {
                   </SelectTrigger>
 
                   <SelectContent>
+                    <SelectItem value="none">Sem departamento</SelectItem>
                     {departments.map(d => (
                       <SelectItem key={d.id} value={String(d.id)}>
                         {d.name}

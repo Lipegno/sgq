@@ -807,7 +807,7 @@ export default function ManagementReviewPage() {
 
           <Section
             title="Decisões e ações"
-            subtitle="Ações em curso registadas nos módulos de Não Conformidades, Objetivos da Qualidade e Oportunidades de Melhoria"
+            subtitle="Ações em curso registadas nos módulos de Não Conformidades, Objetivos da Qualidade, Oportunidades de Melhoria e Riscos e Oportunidades"
           >
             {!summary?.actions.length ? (
               <div className="py-10 text-center text-muted-foreground">

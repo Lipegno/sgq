@@ -42,6 +42,7 @@ public class Log {
     private Long entityYearId;     // e.g., ProcessYear ID
     private Long yearId;       // year reference (nullable)
 
+    @Column(columnDefinition = "TEXT")
     private String entityName;
 
     @Enumerated(EnumType.STRING)
