@@ -490,9 +490,19 @@ export interface CustomerSatisfactionResponse {
 
 export interface SupplierReviewResponse {
   id: number;
-  rating: number;
+  year: number | null;
+  semester: number | null;
+  reviewDate: string | null;
+  criteriaSentDate: string | null;
+  conformityScore: number | null;
+  deadlineScore: number | null;
+  qualityScore: number | null;
+  documentationScore: number | null;
+  totalScore: number | null;
+  classification: string | null;
+  measures: string | null;
+  justification: string | null;
   text: string | null;
-  reviewDate: string;
   documents: DocumentWithVersionsResponse[];
 }
 
@@ -517,17 +527,22 @@ export interface UpdateSupplierRequest {
   contactInfo?: string | null;
 }
 
-export interface CreateSupplierReviewRequest {
-  rating: number;
+export interface UpdateSupplierReviewRequest {
+  year?: number | null;
+  semester?: number | null;
+  reviewDate?: string | null;
+  criteriaSentDate?: string | null;
+  conformityScore?: number | null;
+  deadlineScore?: number | null;
+  qualityScore?: number | null;
+  documentationScore?: number | null;
+  classification?: string | null;
+  measures?: string | null;
+  justification?: string | null;
   text?: string | null;
-  reviewDate: string;
 }
 
-export interface UpdateSupplierReviewRequest {
-  rating?: number | null;
-  text?: string | null;
-  reviewDate?: string | null;
-}
+export type CreateSupplierReviewRequest = UpdateSupplierReviewRequest;
 
 /* SWOT ANALYSIS (4.1) */
 
@@ -1070,7 +1085,7 @@ export type EntityType =
   | "QUALITY_OBJECTIVE" | "EQUIPMENT" | "CALIBRATION_RECORD"
   | "MAINTENANCE_RECORD" | "HUMAN_RESOURCE" | "COMPETENCY"
   | "INFRASTRUCTURE" | "CHANGE" | "SYSTEM_POLICY" | "DOCUMENT"
-  | "DOCUMENT_VERSION" | "SCOPE" | "AUDIT" | "CUSTOMER_SATISFACTION" | "SUPPLIER" | "SUPPLIER_REVIEW" | "MANAGEMENT_REVIEW";
+  | "DOCUMENT_VERSION" | "SCOPE" | "AUDIT" | "CUSTOMER_SATISFACTION" | "SUPPLIER" | "SUPPLIER_REVIEW" | "MANAGEMENT_REVIEW" | "DOCUMENTED_INFORMATION";
 
 export type ActionType = "CREATED" | "UPDATED" | "DELETED" | "ASSOCIATED" | "DISASSOCIATED";
 
@@ -1172,4 +1187,17 @@ export interface ManagementReviewSummaryResponse {
     pendingApproval: number;
     withoutApprovedVersion: number;
   };
+}
+
+/* DOCUMENTED INFORMATION */
+
+export interface DocumentedInformationResponse {
+  id: number;
+  description: string | null;
+  url: string | null;
+}
+
+export interface UpdateDocumentedInformationRequest {
+  description?: string;
+  url?: string;
 }

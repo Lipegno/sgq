@@ -14,17 +14,17 @@ import com.rodrigommfreitas.coreservice.user.User;
 import com.rodrigommfreitas.coreservice.user.UserReferenceService;
 import com.rodrigommfreitas.coreservice.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -38,6 +38,7 @@ public class DocumentService {
     private final UserReferenceService userRefService;
     private final LogService logService;
     private final LogDetailsBuilder logDetailsBuilder;
+    private final FileStorage fileStorage;
 
     public DocumentWithVersionsResponse getDocumentWithVersions(Long documentId) {
         if (documentId == null) return null;
@@ -73,12 +74,13 @@ public class DocumentService {
         if (request.documentId() != null) {
             document = documentRepository.findById(request.documentId())
                     .orElseThrow(() -> new RuntimeException("Document not found"));
-            if (request.version().compareTo(document.getCurrentVersion().getVersion())>0) {
+            if (document.getCurrentVersion() != null
+                    && VersionComparator.compare(request.version(), document.getCurrentVersion().getVersion()) <= 0) {
                 throw new IllegalArgumentException("New version must be higher than current version");
             }
         } else {
             document = Document.builder().build();
-            document.setVersioned(request.versioned());
+            document.setVersioned(Boolean.TRUE.equals(request.versioned()));
             document = documentRepository.save(document);
         }
 
@@ -100,23 +102,16 @@ public class DocumentService {
             baseName = originalName.substring(0, dotIndex);
         }
         String fileName = baseName + "_" + UUID.randomUUID() + extension;
-        String fileUrl = "/files/" + fileName;
-        Path filePath = Paths.get("files/", fileName);
 
         try {
-            Files.createDirectories(filePath.getParent());
+            fileStorage.save(fileName, file.getBytes());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
 
-        try {
-            Files.write(filePath, file.getBytes());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        User uploadedBy = request.uploadedById() != null
-                ? userRepository.findById(request.uploadedById()).orElse(null)
+        Long authenticatedUserId = UserContextHolder.getUserId();
+        User uploadedBy = authenticatedUserId != null
+                ? userRepository.findById(authenticatedUserId).orElse(null)
                 : null;
 
         DocumentVersion version = DocumentVersion.builder()
@@ -124,14 +119,15 @@ public class DocumentService {
                 .version(request.version())
                 .fileName(fileName)
                 .fileType(file.getContentType())
-                .fileUrl(filePath.toString())
+                .fileUrl("files/" + fileName)
                 .uploadedBy(uploadedBy)
                 .uploadedAt(LocalDateTime.now())
                 .build();
 
         version = versionRepository.save(version);
 
-        boolean requiresApproval = document.getVersioned() && (request.requiresApproval() == null || request.requiresApproval());
+        boolean skipApprovalRequested = Boolean.FALSE.equals(request.requiresApproval());
+        boolean requiresApproval = document.getVersioned() && !(skipApprovalRequested && isSuperAdmin());
 
         if (!requiresApproval) {
             autoApprove(document, version);
@@ -187,6 +183,8 @@ public class DocumentService {
     public void deleteDocument(Long documentId) {
         Document doc = documentRepository.findById(documentId).orElse(null);
         if (doc != null) {
+            List<String> storedFiles = doc.getVersions().stream().map(DocumentVersion::getFileName).toList();
+            fileStorage.deleteAfterCommit(storedFiles);
             Long userId = UserContextHolder.getUserId();
             String docName = doc.getCurrentVersion() != null && doc.getCurrentVersion().getFileName() != null
                     ? doc.getCurrentVersion().getFileName() : "Documento";
@@ -208,6 +206,12 @@ public class DocumentService {
         DocumentVersion version = versionRepository.findById(versionId)
                 .orElseThrow(() -> new RuntimeException("Version not found"));
         return version.getFileUrl();
+    }
+
+    private boolean isSuperAdmin() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_SUPERADMIN".equals(a.getAuthority()));
     }
 
     private void autoApprove(Document document, DocumentVersion version) {

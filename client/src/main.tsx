@@ -30,6 +30,7 @@ import SwotAnalysisPage from "./pages/swot/swot-page";
 import RisksOpportunitiesPage from "./pages/risks-opportunities/risks-opportunities";
 import QualityObjectivesPage from "./pages/quality-objectives/quality-objectives-page";
 import CommunicationPage from "./pages/communication/communication-page";
+import DocumentedInformationPage from "./pages/documented-information/documented-information-page";
 import ResourcesPage from "./pages/resources-page";
 import AuditsPage from "./pages/audits/audits-page";
 import DepartmentsPage from "./pages/departments/departments-page";
@@ -148,6 +149,14 @@ const router = createBrowserRouter(
           handle={{
             group: "7. Suporte",
             breadcrumb: () => "7.4. Comunicação",
+          }}
+        />
+        <Route
+          path="informacao-documentada"
+          element={<DocumentedInformationPage />}
+          handle={{
+            group: "7. Suporte",
+            breadcrumb: () => "7.5. Informação Documentada",
           }}
         />
         <Route

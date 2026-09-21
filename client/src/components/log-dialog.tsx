@@ -48,6 +48,8 @@ const actionLabels: Record<ActionType, string> = {
 };
 
 const entityTypeLabels: Record<string, string> = {
+  SUPPLIER: "Fornecedor",
+  SUPPLIER_REVIEW: "Avaliação de fornecedor",
   HUMAN_RESOURCE: "Pessoa",
   COMPETENCY: "Competência",
   INFRASTRUCTURE: "Infraestrutura",
@@ -77,9 +79,21 @@ const entityTypeLabels: Record<string, string> = {
   CORRECTIVE_ACTION: "Ação Corretiva",
   RISK_ACTION: "Ação",
   MANAGEMENT_REVIEW: "Revisão pela Gestão",
+  DOCUMENTED_INFORMATION: "Informação Documentada",
 };
 
 const fieldLabels: Record<string, string> = {
+  semester: "Semestre",
+  criteriaSentDate: "Envio dos critérios",
+  reviewDate: "Data da avaliação",
+  conformityScore: "Conformidade dos bens/serviços",
+  deadlineScore: "Cumprimento dos prazos",
+  qualityScore: "Qualidade dos bens/serviços",
+  documentationScore: "Conformidade documental",
+  totalScore: "Pontuação total",
+  classification: "Classificação",
+  measures: "Medidas decorrentes",
+  justification: "Fundamentação",
   name: "Nome",
   function: "Função",
   department: "Departamento",
@@ -91,6 +105,7 @@ const fieldLabels: Record<string, string> = {
   performedBy: "Executado por",
   result: "Resultado",
   description: "Descrição",
+  url: "Ligação",
   maintenance: "Manutenção",
   objective: "Objetivo",
   owner: "Responsável",

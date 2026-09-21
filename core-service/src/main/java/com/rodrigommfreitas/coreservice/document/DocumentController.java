@@ -16,7 +16,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 @RestController
 @RequestMapping("/api/documents")
@@ -25,7 +24,7 @@ public class DocumentController {
 
     private final DocumentService documentService;
     private final DocumentVersionService documentVersionService;
-
+    private final FileStorage fileStorage;
 
     @PostMapping("/upload")
     @ResponseStatus(HttpStatus.CREATED)
@@ -56,12 +55,15 @@ public class DocumentController {
         DocumentVersion version = documentVersionService.findById(versionId)
                 .orElseThrow(() -> new RuntimeException("Version not found"));
 
-        Path path = Paths.get("files/", fileName);
+        Path path = fileStorage.resolve(version.getFileName());
         Resource resource;
         try {
             resource = new UrlResource(path.toUri());
         } catch (MalformedURLException e) {
             throw new RuntimeException(e);
+        }
+        if (!resource.exists()) {
+            return ResponseEntity.notFound().build();
         }
 
         String downloadName = version.getFileName();

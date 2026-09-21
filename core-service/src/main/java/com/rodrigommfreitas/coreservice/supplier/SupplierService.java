@@ -130,28 +130,22 @@ public class SupplierService {
         Supplier supplier = supplierRepository.findById(supplierId)
                 .orElseThrow(() -> new EntityNotFoundException("Supplier not found"));
 
-        SupplierReview review = SupplierReview.builder()
-                .supplier(supplier)
-                .rating(request.rating())
-                .text(request.text())
-                .reviewDate(request.reviewDate())
-                .build();
+        validate(request);
+        SupplierReview review = SupplierReview.builder().supplier(supplier).build();
+        apply(review, request);
 
         reviewRepository.save(review);
         supplier.getReviews().add(review);
 
         Long userId = UserContextHolder.getUserId();
-        Map<String, Object> fields = new LinkedHashMap<>();
-        fields.put("rating", String.valueOf(request.rating()));
-        fields.put("text", request.text() != null ? request.text() : "");
-        fields.put("reviewDate", request.reviewDate() != null ? request.reviewDate().toString() : "");
+        Map<String, Object> fields = reviewFields(review);
         logService.createLog(new CreateLogRequest(
                 userId,
                 EntityType.SUPPLIER_REVIEW,
-                review.getId(),
+                supplier.getId(),
                 null,
                 null,
-                "Avaliação — " + supplier.getName(),
+                reviewLogName(supplier, review),
                 ActionType.CREATED,
                 logDetailsBuilder.buildCreated(fields)
         ));
@@ -168,31 +162,24 @@ public class SupplierService {
             throw new IllegalArgumentException("Review does not belong to this supplier");
         }
 
-        Map<String, Object> oldFields = new LinkedHashMap<>();
-        oldFields.put("rating", String.valueOf(review.getRating()));
-        oldFields.put("text", review.getText() != null ? review.getText() : "");
-        oldFields.put("reviewDate", review.getReviewDate() != null ? review.getReviewDate().toString() : "");
+        validate(request);
+        Map<String, Object> oldFields = reviewFields(review);
 
-        if (request.rating() != null) review.setRating(request.rating());
-        if (request.text() != null) review.setText(request.text());
-        if (request.reviewDate() != null) review.setReviewDate(request.reviewDate());
+        apply(review, request);
 
         reviewRepository.save(review);
 
-        Map<String, Object> newFields = new LinkedHashMap<>();
-        newFields.put("rating", String.valueOf(review.getRating()));
-        newFields.put("text", review.getText() != null ? review.getText() : "");
-        newFields.put("reviewDate", review.getReviewDate() != null ? review.getReviewDate().toString() : "");
+        Map<String, Object> newFields = reviewFields(review);
 
         if (!oldFields.equals(newFields)) {
             Long userId = UserContextHolder.getUserId();
             logService.createLog(new CreateLogRequest(
                     userId,
                     EntityType.SUPPLIER_REVIEW,
-                    reviewId,
+                    supplierId,
                     null,
                     null,
-                    "Avaliação — " + review.getSupplier().getName(),
+                    reviewLogName(review.getSupplier(), review),
                     ActionType.UPDATED,
                     logDetailsBuilder.buildUpdated(oldFields, newFields)
             ));
@@ -211,14 +198,14 @@ public class SupplierService {
             }
 
             Long userId = UserContextHolder.getUserId();
-            Map<String, Object> fields = Map.of("rating", String.valueOf(review.getRating()));
+            Map<String, Object> fields = reviewFields(review);
             logService.createLog(new CreateLogRequest(
                     userId,
                     EntityType.SUPPLIER_REVIEW,
-                    reviewId,
+                    supplierId,
                     null,
                     null,
-                    "Avaliação — " + supplier.getName(),
+                    reviewLogName(supplier, review),
                     ActionType.DELETED,
                     logDetailsBuilder.buildDeleted(fields)
             ));
@@ -287,10 +274,86 @@ public class SupplierService {
 
         return new SupplierReviewResponse(
                 review.getId(),
-                review.getRating(),
-                review.getText(),
+                review.getEvaluationYear(),
+                review.getSemester(),
                 review.getReviewDate(),
+                review.getCriteriaSentDate(),
+                review.getConformityScore(),
+                review.getDeadlineScore(),
+                review.getQualityScore(),
+                review.getDocumentationScore(),
+                totalScore(review),
+                review.getClassification(),
+                review.getMeasures(),
+                review.getJustification(),
+                review.getText(),
                 documents
         );
+    }
+
+    private static String reviewLogName(Supplier supplier, SupplierReview review) {
+        String period = java.util.stream.Stream.of(
+                        review.getEvaluationYear() != null ? review.getEvaluationYear().toString() : null,
+                        review.getSemester() != null ? review.getSemester() + ".º semestre" : null)
+                .filter(java.util.Objects::nonNull)
+                .collect(java.util.stream.Collectors.joining(" · "));
+        return "Avaliação — " + supplier.getName() + (period.isEmpty() ? "" : " (" + period + ")");
+    }
+
+    private static Integer totalScore(SupplierReview review) {
+        List<Integer> scores = java.util.stream.Stream.of(
+                        review.getConformityScore(), review.getDeadlineScore(),
+                        review.getQualityScore(), review.getDocumentationScore())
+                .filter(java.util.Objects::nonNull)
+                .toList();
+        return scores.isEmpty() ? null : scores.stream().mapToInt(Integer::intValue).sum();
+    }
+
+    private static void validate(SupplierReviewData data) {
+        if (data.semester() != null && data.semester() != 1 && data.semester() != 2) {
+            throw new IllegalArgumentException("O semestre tem de ser 1 ou 2.");
+        }
+        for (Integer score : java.util.Arrays.asList(
+                data.conformityScore(), data.deadlineScore(), data.qualityScore(), data.documentationScore())) {
+            if (score != null && (score < 1 || score > 4)) {
+                throw new IllegalArgumentException("A pontuação de cada critério tem de estar entre 1 e 4.");
+            }
+        }
+    }
+
+    private static void apply(SupplierReview review, SupplierReviewData data) {
+        review.setEvaluationYear(data.year());
+        review.setSemester(data.semester());
+        review.setReviewDate(data.reviewDate());
+        review.setCriteriaSentDate(data.criteriaSentDate());
+        review.setConformityScore(data.conformityScore());
+        review.setDeadlineScore(data.deadlineScore());
+        review.setQualityScore(data.qualityScore());
+        review.setDocumentationScore(data.documentationScore());
+        review.setClassification(blankToNull(data.classification()));
+        review.setMeasures(blankToNull(data.measures()));
+        review.setJustification(blankToNull(data.justification()));
+        review.setText(blankToNull(data.text()));
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private static Map<String, Object> reviewFields(SupplierReview review) {
+        Map<String, Object> fields = new LinkedHashMap<>();
+        fields.put("year", review.getEvaluationYear() != null ? review.getEvaluationYear().toString() : "");
+        fields.put("semester", review.getSemester() != null ? review.getSemester().toString() : "");
+        fields.put("reviewDate", review.getReviewDate() != null ? review.getReviewDate().toString() : "");
+        fields.put("criteriaSentDate", review.getCriteriaSentDate() != null ? review.getCriteriaSentDate().toString() : "");
+        fields.put("conformityScore", review.getConformityScore() != null ? review.getConformityScore().toString() : "");
+        fields.put("deadlineScore", review.getDeadlineScore() != null ? review.getDeadlineScore().toString() : "");
+        fields.put("qualityScore", review.getQualityScore() != null ? review.getQualityScore().toString() : "");
+        fields.put("documentationScore", review.getDocumentationScore() != null ? review.getDocumentationScore().toString() : "");
+        fields.put("classification", review.getClassification() != null ? review.getClassification() : "");
+        fields.put("measures", review.getMeasures() != null ? review.getMeasures() : "");
+        fields.put("justification", review.getJustification() != null ? review.getJustification() : "");
+        fields.put("text", review.getText() != null ? review.getText() : "");
+        return fields;
     }
 }

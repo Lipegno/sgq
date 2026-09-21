@@ -1,6 +1,7 @@
 package com.rodrigommfreitas.coreservice.config;
 
 import com.rodrigommfreitas.coreservice.security.JwtUserContextFilter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -26,11 +27,14 @@ public class SecurityConfig {
 
     private final JwtAuthenticationConverter jwtAuthenticationConverter;
     private final JwtUserContextFilter jwtUserContextFilter;
+    private final List<String> allowedOrigins;
 
     public SecurityConfig(JwtAuthenticationConverter jwtAuthenticationConverter,
-                          JwtUserContextFilter jwtUserContextFilter) {
+                          JwtUserContextFilter jwtUserContextFilter,
+                          @Value("${app.cors.allowed-origins:http://localhost:5173}") List<String> allowedOrigins) {
         this.jwtAuthenticationConverter = jwtAuthenticationConverter;
         this.jwtUserContextFilter = jwtUserContextFilter;
+        this.allowedOrigins = allowedOrigins;
     }
 
     @Bean
@@ -71,7 +75,7 @@ http
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173"));
+        config.setAllowedOrigins(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

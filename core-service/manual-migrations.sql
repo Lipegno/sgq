@@ -20,3 +20,17 @@ ALTER TABLE logs ALTER COLUMN entity_name TYPE TEXT;
 ALTER TABLE infrastructure ALTER COLUMN maintenance TYPE TEXT;
 ALTER TABLE non_conformity ALTER COLUMN who TYPE TEXT;
 ALTER TABLE improvement_opportunities ALTER COLUMN who TYPE TEXT;
+
+-- O Hibernate cria uma restrição CHECK com a lista de valores do enum e nunca
+-- a atualiza (ddl-auto=update só acrescenta). Sem isto, registar no log uma
+-- entidade nova (ex.: DOCUMENTED_INFORMATION) falha com "violates check
+-- constraint". Removê-la evita que cada novo valor do enum exija nova migração;
+-- a validação continua garantida pelo enum no código Java.
+ALTER TABLE logs DROP CONSTRAINT IF EXISTS logs_entity_type_check;
+
+-- Avaliação de fornecedores passou a seguir o Mapa (4 critérios, semestre,
+-- classificação...). A nota única antiga (rating) deixou de existir no código
+-- e a data passou a ser opcional; o Hibernate não relaxa NOT NULL sozinho, e
+-- sem isto criar uma avaliação falha. Não apaga nenhum dado.
+ALTER TABLE supplier_review ALTER COLUMN rating DROP NOT NULL;
+ALTER TABLE supplier_review ALTER COLUMN review_date DROP NOT NULL;

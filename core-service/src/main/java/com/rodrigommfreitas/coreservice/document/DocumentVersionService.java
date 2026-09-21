@@ -12,6 +12,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class DocumentVersionService {
     private final DocumentVersionRepository documentVersionRepository;
+    private final FileStorage fileStorage;
 
     public Optional<DocumentVersion> findById(Long versionId) {
         return documentVersionRepository.findById(versionId);
@@ -69,6 +70,7 @@ public class DocumentVersionService {
 
         // Now safe to delete the version
         documentVersionRepository.delete(version);
+        fileStorage.deleteAfterCommit(java.util.Collections.singletonList(version.getFileName()));
 
         if (!isCurrent) {
             return;

@@ -3,6 +3,7 @@ package com.rodrigommfreitas.coreservice.config.seed;
 import com.rodrigommfreitas.coreservice.config.seed.awareness.AwarenessSeeder;
 import com.rodrigommfreitas.coreservice.config.seed.communication.CommunicationSeeder;
 import com.rodrigommfreitas.coreservice.config.seed.customersatisfaction.CustomerSatisfactionSeeder;
+import com.rodrigommfreitas.coreservice.config.seed.documentedinformation.DocumentedInformationSeeder;
 import com.rodrigommfreitas.coreservice.config.seed.leadershipcommitment.LeadershipCommitmentSeeder;
 import com.rodrigommfreitas.coreservice.config.seed.managementreview.ManagementReviewSeeder;
 import com.rodrigommfreitas.coreservice.config.seed.responsibilityauthority.ResponsibilityAuthoritySeeder;
@@ -27,6 +28,7 @@ public class DataInitializer implements CommandLineRunner {
     private final CommunicationSeeder communicationSeeder;
     private final CustomerSatisfactionSeeder customerSatisfactionSeeder;
     private final ManagementReviewSeeder managementReviewSeeder;
+    private final DocumentedInformationSeeder documentedInformationSeeder;
 
     public DataInitializer(UserSeeder userSeeder, YearSeeder yearSeeder, ScopeSeeder scopeSeeder,
                            ResponsibilityAuthoritySeeder responsibilityAuthoritySeeder,
@@ -35,7 +37,8 @@ public class DataInitializer implements CommandLineRunner {
                            SystemPolicySeeder systemPolicySeeder,
                             CommunicationSeeder communicationSeeder,
                             CustomerSatisfactionSeeder customerSatisfactionSeeder,
-                            ManagementReviewSeeder managementReviewSeeder) {
+                            ManagementReviewSeeder managementReviewSeeder,
+                            DocumentedInformationSeeder documentedInformationSeeder) {
         this.userSeeder = userSeeder;
         this.yearSeeder = yearSeeder;
         this.scopeSeeder = scopeSeeder;
@@ -47,6 +50,7 @@ public class DataInitializer implements CommandLineRunner {
         this.communicationSeeder = communicationSeeder;
         this.customerSatisfactionSeeder = customerSatisfactionSeeder;
         this.managementReviewSeeder = managementReviewSeeder;
+        this.documentedInformationSeeder = documentedInformationSeeder;
     }
 
     @Override
@@ -62,5 +66,6 @@ public class DataInitializer implements CommandLineRunner {
         communicationSeeder.seed();
         customerSatisfactionSeeder.seed();
         managementReviewSeeder.seed();
+        documentedInformationSeeder.seed();
     }
 }

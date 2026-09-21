@@ -1,5 +1,7 @@
 import { api } from "./axios";
 import type {
+  DocumentedInformationResponse,
+  UpdateDocumentedInformationRequest,
   CreateCommunicationItemRequest,
   HumanResourceResponse,
   CreateHumanResourceRequest,
@@ -305,6 +307,20 @@ async function getSingleton(path: string): Promise<SingletonDocumentResponse> {
 
 async function updateSingleton(path: string, data: { description: string }): Promise<SingletonDocumentResponse> {
   const res = await api.patch(path, data);
+  return res.data;
+}
+
+/* DOCUMENTED INFORMATION */
+
+export async function getDocumentedInformation(): Promise<DocumentedInformationResponse> {
+  const res = await api.get("/documented-information");
+  return res.data;
+}
+
+export async function updateDocumentedInformation(
+  data: UpdateDocumentedInformationRequest,
+): Promise<DocumentedInformationResponse> {
+  const res = await api.patch("/documented-information", data);
   return res.data;
 }
 

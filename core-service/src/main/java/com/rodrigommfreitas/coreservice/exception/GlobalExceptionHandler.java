@@ -49,6 +49,20 @@ public class GlobalExceptionHandler {
         if (ex.getCause() != null) {
             log.error("Cause: type={}, message={}", ex.getCause().getClass().getName(), ex.getCause().getMessage());
         }
+        String sqlState = sqlStateOf(ex);
+        if ("22001".equals(sqlState)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", "Um dos campos excede o tamanho máximo permitido."));
+        }
+        if ("23502".equals(sqlState)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", "Falta preencher um campo obrigatório."));
+        }
+        if ("23514".equals(sqlState)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", "Um dos valores indicados não é permitido."));
+        }
+
         String message = ex.getMessage();
         String userMessage = "Já existe um registo com valores duplicados.";
 
@@ -90,10 +104,25 @@ public class GlobalExceptionHandler {
                 .body(Map.of("message", userMessage));
     }
 
+    private static String sqlStateOf(Throwable throwable) {
+        for (Throwable t = throwable; t != null; t = t.getCause()) {
+            if (t instanceof java.sql.SQLException sql && sql.getSQLState() != null) {
+                return sql.getSQLState();
+            }
+        }
+        return null;
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<Map<String, String>> handleAccessDenied(org.springframework.security.access.AccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("message", "Não tem permissão para realizar esta ação."));
     }
 
     @ExceptionHandler(jakarta.persistence.EntityNotFoundException.class)

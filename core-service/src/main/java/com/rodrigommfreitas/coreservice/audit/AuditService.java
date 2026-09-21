@@ -6,6 +6,7 @@ import com.rodrigommfreitas.coreservice.department.DepartmentRepository;
 import com.rodrigommfreitas.coreservice.department.dto.DepartmentResponse;
 import com.rodrigommfreitas.coreservice.document.Document;
 import com.rodrigommfreitas.coreservice.document.DocumentRepository;
+import com.rodrigommfreitas.coreservice.document.DocumentService;
 import com.rodrigommfreitas.coreservice.log.ActionType;
 import com.rodrigommfreitas.coreservice.log.EntityType;
 import com.rodrigommfreitas.coreservice.log.LogService;
@@ -34,6 +35,7 @@ public class AuditService {
     private final UserReferenceService userRefService;
     private final DepartmentRepository departmentRepository;
     private final DocumentRepository documentRepository;
+    private final DocumentService documentService;
     private final LogService logService;
     private final LogDetailsBuilder logDetailsBuilder;
 
@@ -174,8 +176,11 @@ public class AuditService {
     public void removeDocument(Long id, Long documentId) {
         Audit audit = auditRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Audit not found"));
-        audit.getDocuments().removeIf(d -> d.getId().equals(documentId));
+        boolean detached = audit.getDocuments().removeIf(d -> d.getId().equals(documentId));
         auditRepository.save(audit);
+        if (detached) {
+            documentService.deleteDocument(documentId);
+        }
     }
 
     @Transactional(readOnly = true)

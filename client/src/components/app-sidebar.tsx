@@ -12,6 +12,7 @@ import {
   Target,
   RefreshCw,
   Building2,
+  FolderOpen,
   GraduationCap,
   Lightbulb,
   MessageSquare,
@@ -29,9 +30,6 @@ import {
   Info,
   AlertTriangle,
   TrendingUp,
-  GalleryVerticalEnd,
-  AudioWaveform,
-  Command,
   Network,
   UserCog,
 } from "lucide-react";
@@ -53,24 +51,15 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/context/auth-context.tsx";
 import { Link } from "react-router-dom";
+import { AppLogo } from "@/components/app-logo";
 
 // This is sample data.
 const data = {
   teams: [
     {
-      name: "SGQ - ISO 9001",
-      logo: GalleryVerticalEnd,
-      plan: "Universidade da Madeira",
-    },
-    {
-      name: "Acme Corp.",
-      logo: AudioWaveform,
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: Command,
-      plan: "Free",
+      name: "QualiUMa",
+      logo: AppLogo,
+      plan: "SGQ · ISO 9001",
     },
   ],
 };
@@ -245,6 +234,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <Link to="/comunicacao">
                   <MessageSquare />
                   <span>7.4. Comunicação</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="7.5. Informação Documentada">
+                <Link to="/informacao-documentada">
+                  <FolderOpen />
+                  <span>7.5. Informação Documentada</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

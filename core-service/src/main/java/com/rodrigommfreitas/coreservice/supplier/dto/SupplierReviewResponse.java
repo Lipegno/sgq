@@ -7,8 +7,18 @@ import java.util.List;
 
 public record SupplierReviewResponse(
         Long id,
-        Integer rating,
-        String text,
+        Integer year,
+        Integer semester,
         LocalDate reviewDate,
+        LocalDate criteriaSentDate,
+        Integer conformityScore,
+        Integer deadlineScore,
+        Integer qualityScore,
+        Integer documentationScore,
+        Integer totalScore,
+        String classification,
+        String measures,
+        String justification,
+        String text,
         List<DocumentWithVersionsResponse> documents
 ) {}

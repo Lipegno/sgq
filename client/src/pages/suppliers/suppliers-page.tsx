@@ -9,24 +9,29 @@ import { toast } from "sonner";
 import { Search, Plus, Trash2, FileText, Download, Upload, Pencil, History, Truck, X, Star } from "lucide-react";
 import { getSuppliers, createSupplier, updateSupplier, deleteSupplier, createSupplierReview, updateSupplierReview, deleteSupplierReview, uploadSupplierReviewDocument, deleteSupplierReviewDocument, downloadDocumentVersion, stripUuidSuffix } from "@/api/core";
 import { LogDialog } from "@/components/log-dialog";
-import type { SupplierResponse, SupplierReviewResponse } from "@/types";
+import type { SupplierResponse, SupplierReviewResponse, UpdateSupplierReviewRequest } from "@/types";
+import {
+  CRITERIA,
+  SCORE_LABELS,
+  SupplierReviewForm,
+  emptyReviewForm,
+  formToRequest,
+  reviewToForm,
+  type ReviewFormState,
+} from "./supplier-review-form";
 
 function invalidateAll(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: ["suppliers"] });
 }
 
-function StarRating({ rating, size = 16 }: { rating: number; size?: number }) {
-  return (
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <Star
-          key={star}
-          size={size}
-          className={star <= rating ? "text-amber-400 fill-amber-400" : "text-slate-200"}
-        />
-      ))}
-    </div>
-  );
+function formatDate(value: string | null) {
+  return value ? new Date(value).toLocaleDateString("pt-PT") : null;
+}
+
+function periodLabel(review: SupplierReviewResponse) {
+  if (!review.year && !review.semester) return "Sem período definido";
+  const semester = review.semester ? `${review.semester}.º semestre` : null;
+  return [review.year, semester].filter(Boolean).join(" · ");
 }
 
 function SupplierReviewCard({
@@ -40,45 +45,29 @@ function SupplierReviewCard({
 }: {
   review: SupplierReviewResponse;
   supplierId: number;
-  onEdit: (data: { rating?: number | null; text?: string | null; reviewDate?: string | null }) => void;
+  onEdit: (data: UpdateSupplierReviewRequest) => void;
   onDelete: (reviewId: number) => void;
   onUpload: (file: File) => void;
   onDeleteDoc: (documentId: number) => void;
   isExternal: boolean;
 }) {
   const [editing, setEditing] = useState(false);
-  const [editRating, setEditRating] = useState(review.rating);
-  const [editText, setEditText] = useState(review.text ?? "");
-  const [editDate, setEditDate] = useState(review.reviewDate);
+  const [editForm, setEditForm] = useState<ReviewFormState>(() => reviewToForm(review));
+
+  const startEditing = () => {
+    setEditForm(reviewToForm(review));
+    setEditing(true);
+  };
 
   const handleSave = () => {
-    onEdit({ rating: editRating, text: editText, reviewDate: editDate });
+    onEdit(formToRequest(editForm));
     setEditing(false);
   };
 
   if (editing) {
     return (
-      <div className="border border-primary/30 rounded-xl p-4 bg-primary/5 space-y-3">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label className="text-xs">Classificação</Label>
-            <div className="flex gap-1">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button key={star} type="button" onClick={() => setEditRating(star)} className="cursor-pointer">
-                  <Star size={20} className={star <= editRating ? "text-amber-400 fill-amber-400" : "text-slate-200"} />
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="review-date" className="text-xs">Data</Label>
-            <Input id="review-date" type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
-          </div>
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="review-text" className="text-xs">Descrição</Label>
-          <textarea id="review-text" className="flex min-h-[60px] w-full rounded-md border border-input bg-white px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none resize-none" value={editText} onChange={(e) => setEditText(e.target.value)} placeholder="Descreva a avaliação..." />
-        </div>
+      <div className="border border-primary/30 rounded-xl p-4 bg-primary/5 space-y-4">
+        <SupplierReviewForm value={editForm} onChange={setEditForm} idPrefix={`review-${review.id}`} />
         <div className="flex items-center gap-2 justify-end">
           <button onClick={() => setEditing(false)} className="text-xs text-muted-foreground hover:text-foreground cursor-pointer px-2 py-1">Cancelar</button>
           <button onClick={handleSave} className="text-xs bg-primary text-primary-foreground px-3 py-1.5 rounded-md font-bold hover:bg-primary/90 transition-all cursor-pointer">Guardar</button>
@@ -90,15 +79,27 @@ function SupplierReviewCard({
   return (
     <div className="border border-border rounded-xl p-4 bg-card shadow-sm">
       <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <StarRating rating={review.rating} size={18} />
-          <span className="text-xs text-muted-foreground">
-            {new Date(review.reviewDate).toLocaleDateString("pt-PT")}
-          </span>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-bold text-foreground">{periodLabel(review)}</span>
+            {review.classification && (
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                {review.classification}
+              </span>
+            )}
+          </div>
+          {(review.reviewDate || review.criteriaSentDate) && (
+            <p className="text-xs text-muted-foreground mt-1">
+              {[
+                review.criteriaSentDate ? `Critérios enviados em ${formatDate(review.criteriaSentDate)}` : null,
+                review.reviewDate ? `Avaliado em ${formatDate(review.reviewDate)}` : null,
+              ].filter(Boolean).join(" · ")}
+            </p>
+          )}
         </div>
         {!isExternal && (
           <div className="flex items-center gap-1 shrink-0">
-            <button onClick={() => setEditing(true)} className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-all cursor-pointer" title="Editar">
+            <button onClick={startEditing} className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-all cursor-pointer" title="Editar">
               <Pencil size={14} />
             </button>
             <button onClick={() => onDelete(review.id)} className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all cursor-pointer" title="Eliminar">
@@ -108,8 +109,33 @@ function SupplierReviewCard({
         )}
       </div>
 
-      {review.text && (
-        <p className="text-sm text-foreground mt-3 whitespace-pre-wrap">{review.text}</p>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(8.5rem,1fr))] gap-2 mt-3">
+        {CRITERIA.map((criterion) => {
+          const score = review[criterion.key];
+          return (
+            <div key={criterion.key} className="min-w-0 rounded-lg border border-border bg-muted/40 px-3 py-2">
+              <p className="text-[10px] leading-tight text-muted-foreground min-h-[2.5em]">{criterion.label}</p>
+              <p className="text-sm font-bold text-foreground mt-1">{score ? `${score} · ${SCORE_LABELS[score]}` : "—"}</p>
+            </div>
+          );
+        })}
+        <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
+          <p className="text-[10px] leading-tight text-muted-foreground min-h-[2.5em]">Pontuação total</p>
+          <p className="text-sm font-bold text-foreground mt-1">{review.totalScore ?? "—"}</p>
+        </div>
+      </div>
+
+      {([
+        ["Medidas decorrentes da avaliação", review.measures],
+        ["Fundamentação de manutenção de fornecedor não classificado", review.justification],
+        ["Observações", review.text],
+      ] as const).map(([label, content]) =>
+        content ? (
+          <div key={label} className="mt-3">
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{label}</p>
+            <p className="text-sm text-foreground mt-1 whitespace-pre-wrap">{content}</p>
+          </div>
+        ) : null
       )}
 
       <div className="mt-3 pt-3 border-t border-border">
@@ -186,9 +212,7 @@ export default function SuppliersPage() {
   const [editDescription, setEditDescription] = useState("");
   const [editContact, setEditContact] = useState("");
 
-  const [reviewRating, setReviewRating] = useState(5);
-  const [reviewText, setReviewText] = useState("");
-  const [reviewDate, setReviewDate] = useState(new Date().toISOString().split("T")[0]);
+  const [reviewForm, setReviewForm] = useState<ReviewFormState>(emptyReviewForm());
 
   const { data: suppliers, isLoading } = useQuery({
     queryKey: ["suppliers"],
@@ -242,20 +266,18 @@ export default function SuppliersPage() {
   });
 
   const createReviewMutation = useMutation({
-    mutationFn: () => createSupplierReview(selectedSupplier!.id, { rating: reviewRating, text: reviewText || null, reviewDate }),
+    mutationFn: () => createSupplierReview(selectedSupplier!.id, formToRequest(reviewForm)),
     onSuccess: () => {
       invalidateAll(queryClient);
       toast.success("Avaliação registada!");
       setAddReviewOpen(false);
-      setReviewRating(5);
-      setReviewText("");
-      setReviewDate(new Date().toISOString().split("T")[0]);
+      setReviewForm(emptyReviewForm());
     },
     onError: (err: any) => toast.error(err?.response?.data?.message ?? "Erro ao registar avaliação"),
   });
 
   const updateReviewMutation = useMutation({
-    mutationFn: ({ reviewId, data }: { reviewId: number; data: { rating?: number | null; text?: string | null; reviewDate?: string | null } }) =>
+    mutationFn: ({ reviewId, data }: { reviewId: number; data: UpdateSupplierReviewRequest }) =>
       updateSupplierReview(selectedSupplier!.id, reviewId, data),
     onSuccess: () => {
       invalidateAll(queryClient);
@@ -406,7 +428,7 @@ export default function SuppliersPage() {
                     Avaliações ({selectedSupplier.reviews.length})
                   </h3>
                   {!isExternal && (
-                    <button onClick={() => { setReviewRating(5); setReviewText(""); setReviewDate(new Date().toISOString().split("T")[0]); setAddReviewOpen(true); }} className="flex items-center gap-1 text-xs bg-primary text-primary-foreground px-3 py-1.5 rounded-md font-bold hover:bg-primary/90 transition-all cursor-pointer">
+                    <button onClick={() => { setReviewForm(emptyReviewForm()); setAddReviewOpen(true); }} className="flex items-center gap-1 text-xs bg-primary text-primary-foreground px-3 py-1.5 rounded-md font-bold hover:bg-primary/90 transition-all cursor-pointer">
                       <Plus size={14} />
                       Nova Avaliação
                     </button>
@@ -433,7 +455,7 @@ export default function SuppliersPage() {
                     <Star size={32} className="mx-auto text-muted-foreground mb-3" />
                     <p className="text-sm text-muted-foreground">Nenhuma avaliação registada para este fornecedor.</p>
                     {!isExternal && (
-                      <button onClick={() => { setReviewRating(5); setReviewText(""); setReviewDate(new Date().toISOString().split("T")[0]); setAddReviewOpen(true); }} className="mt-4 text-sm text-primary hover:text-primary/80 font-bold cursor-pointer">
+                      <button onClick={() => { setReviewForm(emptyReviewForm()); setAddReviewOpen(true); }} className="mt-4 text-sm text-primary hover:text-primary/80 font-bold cursor-pointer">
                         + Registar Primeira Avaliação
                       </button>
                     )}
@@ -524,30 +546,13 @@ export default function SuppliersPage() {
 
       {/* Create Review Dialog */}
       <Dialog open={addReviewOpen} onOpenChange={setAddReviewOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Nova Avaliação</DialogTitle>
-            <DialogDescription>Registe uma avaliação para {selectedSupplier?.name}.</DialogDescription>
+            <DialogDescription>Registe uma avaliação para {selectedSupplier?.name}. Todos os campos são opcionais e podem ser editados depois.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <Label>Classificação</Label>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button key={star} type="button" onClick={() => setReviewRating(star)} className="cursor-pointer">
-                    <Star size={24} className={star <= reviewRating ? "text-amber-400 fill-amber-400" : "text-slate-200"} />
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="review-date">Data</Label>
-              <Input id="review-date" type="date" value={reviewDate} onChange={(e) => setReviewDate(e.target.value)} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="review-text">Descrição</Label>
-              <textarea id="review-text" className="flex min-h-[80px] w-full rounded-md border border-input bg-slate-50 px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] outline-none resize-none" value={reviewText} onChange={(e) => setReviewText(e.target.value)} placeholder="Descreva a avaliação..." />
-            </div>
+          <div className="py-2">
+            <SupplierReviewForm value={reviewForm} onChange={setReviewForm} idPrefix="new-review" />
           </div>
           <DialogFooter>
             <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
@@ -589,7 +594,7 @@ export default function SuppliersPage() {
       <LogDialog
         open={logOpen}
         onOpenChange={setLogOpen}
-        entityType="SUPPLIER"
+        entityTypes={["SUPPLIER", "SUPPLIER_REVIEW"]}
         baseEntityId={selectedSupplier?.id}
         title="Histórico — Fornecedores"
       />

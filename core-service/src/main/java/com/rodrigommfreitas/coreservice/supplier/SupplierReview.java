@@ -24,14 +24,33 @@ public class SupplierReview {
     @JoinColumn(name = "supplier_id", nullable = false)
     private Supplier supplier;
 
-    @Column(nullable = false)
-    private Integer rating;
+    private Integer evaluationYear;
+
+    private Integer semester;
+
+    private LocalDate reviewDate;
+
+    private LocalDate criteriaSentDate;
+
+    private Integer conformityScore;
+
+    private Integer deadlineScore;
+
+    private Integer qualityScore;
+
+    private Integer documentationScore;
+
+    @Column(columnDefinition = "TEXT")
+    private String classification;
+
+    @Column(columnDefinition = "TEXT")
+    private String measures;
+
+    @Column(columnDefinition = "TEXT")
+    private String justification;
 
     @Column(columnDefinition = "TEXT")
     private String text;
-
-    @Column(nullable = false)
-    private LocalDate reviewDate;
 
     @ManyToMany
     @JoinTable(
