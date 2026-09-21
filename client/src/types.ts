@@ -1085,7 +1085,7 @@ export type EntityType =
   | "QUALITY_OBJECTIVE" | "EQUIPMENT" | "CALIBRATION_RECORD"
   | "MAINTENANCE_RECORD" | "HUMAN_RESOURCE" | "COMPETENCY"
   | "INFRASTRUCTURE" | "CHANGE" | "SYSTEM_POLICY" | "DOCUMENT"
-  | "DOCUMENT_VERSION" | "SCOPE" | "AUDIT" | "CUSTOMER_SATISFACTION" | "SUPPLIER" | "SUPPLIER_REVIEW" | "MANAGEMENT_REVIEW" | "DOCUMENTED_INFORMATION";
+  | "DOCUMENT_VERSION" | "SCOPE" | "AUDIT" | "CUSTOMER_SATISFACTION" | "SUPPLIER" | "SUPPLIER_REVIEW" | "MANAGEMENT_REVIEW" | "MANAGEMENT_REVIEW_MEETING" | "DOCUMENTED_INFORMATION";
 
 export type ActionType = "CREATED" | "UPDATED" | "DELETED" | "ASSOCIATED" | "DISASSOCIATED";
 
@@ -1187,6 +1187,31 @@ export interface ManagementReviewSummaryResponse {
     pendingApproval: number;
     withoutApprovedVersion: number;
   };
+  audits: {
+    total: number;
+    finished: number;
+    planned: number;
+    canceled: number;
+    internal: number;
+    external: number;
+  };
+  customerSatisfaction: {
+    hasYear: boolean;
+    documents: number;
+  };
+  suppliers: {
+    suppliers: number;
+    reviews: number;
+    suppliersEvaluated: number;
+    classifications: { classification: string; count: number }[];
+  };
+  changes: {
+    total: number;
+    initiated: number;
+    inProgress: number;
+    finished: number;
+    cancelled: number;
+  };
 }
 
 /* DOCUMENTED INFORMATION */
@@ -1200,4 +1225,27 @@ export interface DocumentedInformationResponse {
 export interface UpdateDocumentedInformationRequest {
   description?: string;
   url?: string;
+}
+
+/* MANAGEMENT REVIEW MEETINGS (9.3) */
+
+export interface ManagementReviewMeetingFields {
+  meetingDate: string | null;
+  participants: string | null;
+  notes: string | null;
+  decisions: string | null;
+  improvementOutputs: string | null;
+  changeNeeds: string | null;
+  resourceNeeds: string | null;
+}
+
+export interface ManagementReviewMeetingRequest extends ManagementReviewMeetingFields {
+  yearId: number;
+}
+
+export interface ManagementReviewMeetingResponse extends ManagementReviewMeetingFields {
+  id: number;
+  yearId: number;
+  year: number;
+  documents: DocumentWithVersionsResponse[];
 }

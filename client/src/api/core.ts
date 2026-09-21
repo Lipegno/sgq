@@ -33,6 +33,8 @@ import type {
   MacroProcessDiagramResponse,
    HumanResourceResponsibilitiesResponse,
    ManagementReviewSummaryResponse,
+  ManagementReviewMeetingRequest,
+  ManagementReviewMeetingResponse,
 } from "@/types.ts";
 
 export const getMacroProcessHierarchy = async (yearId: number): Promise<ProcessHierarchyResponse> => {
@@ -614,6 +616,41 @@ export const uploadManagementReviewDocument = async (
 
 export const deleteManagementReviewDocument = async (documentId: number): Promise<void> => {
   await api.delete(`/management-reviews/documents/${documentId}`);
+};
+
+/* MANAGEMENT REVIEW MEETINGS (9.3) */
+
+export const getManagementReviewMeetings = async (yearId: number): Promise<ManagementReviewMeetingResponse[]> => {
+  const res = await api.get("/management-review-meetings", { params: { yearId } });
+  return res.data;
+};
+
+export const createManagementReviewMeeting = async (data: ManagementReviewMeetingRequest): Promise<ManagementReviewMeetingResponse> => {
+  const res = await api.post("/management-review-meetings", data);
+  return res.data;
+};
+
+export const updateManagementReviewMeeting = async (id: number, data: ManagementReviewMeetingRequest): Promise<ManagementReviewMeetingResponse> => {
+  const res = await api.patch(`/management-review-meetings/${id}`, data);
+  return res.data;
+};
+
+export const deleteManagementReviewMeeting = async (id: number): Promise<void> => {
+  await api.delete(`/management-review-meetings/${id}`);
+};
+
+export const uploadManagementReviewMeetingDocument = async (id: number, file: File, uploadedById: number): Promise<ManagementReviewMeetingResponse> => {
+  const formData = new FormData();
+  formData.append("data", new Blob([JSON.stringify({ documentId: null, versioned: false, version: 1, uploadedById })], { type: "application/json" }));
+  formData.append("file", file);
+  const res = await api.post(`/management-review-meetings/${id}/documents`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data;
+};
+
+export const removeManagementReviewMeetingDocument = async (id: number, documentId: number): Promise<void> => {
+  await api.delete(`/management-review-meetings/${id}/documents/${documentId}`);
 };
 
 /* SUPPLIERS (8.4.1) */

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { YearSelector } from "@/components/year-selector";
 import { YearDocumentsSection } from "@/components/year-documents-section";
 import { LogDialog } from "@/components/log-dialog";
+import { MeetingsSection } from "./meetings-section";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -136,12 +137,6 @@ export default function ManagementReviewPage() {
   /* Upload */
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
-
-  /* Avaliação — mock local */
-  const [globalAssessment, setGlobalAssessment] = useState("");
-  const [effectivenessAssessment, setEffectivenessAssessment] = useState("");
-  const [improvementOpportunities, setImprovementOpportunities] = useState("");
-  const [resourceNeeds, setResourceNeeds] = useState("");
 
   /* ---------------------------------------------------------------------- */
   /*                               EXISTING API                              */
@@ -871,6 +866,82 @@ export default function ManagementReviewPage() {
           </Section>
 
           {/* ---------------------------------------------------------------- */}
+          {/* OUTRAS ENTRADAS (ISO 9.3.2)                                      */}
+          {/* ---------------------------------------------------------------- */}
+
+          <Section
+            title="Outras entradas da revisão"
+            subtitle="Auditorias, satisfação, fornecedores e alterações do ciclo (resumo)"
+          >
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="border border-border rounded-xl p-5">
+                <h3 className="font-semibold mb-4">Auditorias</h3>
+                <div className="space-y-3 text-sm">
+                  <StateRow
+                    label="Concluídas"
+                    value={`${summary?.audits.finished ?? 0} / ${summary?.audits.total ?? 0}`}
+                    ok={(summary?.audits.total ?? 0) > 0 && summary?.audits.finished === summary?.audits.total}
+                  />
+                  <StateRow label="Por realizar" value={String(summary?.audits.planned ?? 0)} ok={(summary?.audits.planned ?? 0) === 0} />
+                  <StateRow label="Canceladas" value={String(summary?.audits.canceled ?? 0)} ok={(summary?.audits.canceled ?? 0) === 0} />
+                  <StateRow
+                    label="Internas / externas"
+                    value={`${summary?.audits.internal ?? 0} / ${summary?.audits.external ?? 0}`}
+                    ok
+                  />
+                </div>
+              </div>
+
+              <div className="border border-border rounded-xl p-5">
+                <h3 className="font-semibold mb-4">Satisfação dos estudantes</h3>
+                <div className="space-y-3 text-sm">
+                  <StateRow
+                    label="Ciclo com relatório"
+                    value={summary?.customerSatisfaction.hasYear ? "Sim" : "Não"}
+                    ok={!!summary?.customerSatisfaction.hasYear}
+                  />
+                  <StateRow
+                    label="Documentos anexados"
+                    value={String(summary?.customerSatisfaction.documents ?? 0)}
+                    ok={(summary?.customerSatisfaction.documents ?? 0) > 0}
+                  />
+                </div>
+              </div>
+
+              <div className="border border-border rounded-xl p-5">
+                <h3 className="font-semibold mb-4">Fornecedores</h3>
+                <div className="space-y-3 text-sm">
+                  <StateRow
+                    label="Fornecedores avaliados no ano"
+                    value={`${summary?.suppliers.suppliersEvaluated ?? 0} / ${summary?.suppliers.suppliers ?? 0}`}
+                    ok={(summary?.suppliers.suppliersEvaluated ?? 0) > 0}
+                  />
+                  <StateRow label="Avaliações registadas" value={String(summary?.suppliers.reviews ?? 0)} ok={(summary?.suppliers.reviews ?? 0) > 0} />
+                  {(summary?.suppliers.classifications ?? []).map((c) => (
+                    <div key={c.classification} className="flex items-center justify-between gap-4 text-muted-foreground">
+                      <span>{c.classification}</span>
+                      <strong className="font-semibold text-foreground">{c.count}</strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border border-border rounded-xl p-5">
+                <h3 className="font-semibold mb-4">Gestão das alterações</h3>
+                <div className="space-y-3 text-sm">
+                  <StateRow
+                    label="Concluídas"
+                    value={`${summary?.changes.finished ?? 0} / ${summary?.changes.total ?? 0}`}
+                    ok={(summary?.changes.total ?? 0) > 0 && summary?.changes.finished === summary?.changes.total}
+                  />
+                  <StateRow label="Em curso" value={String((summary?.changes.inProgress ?? 0) + (summary?.changes.initiated ?? 0))} ok />
+                  <StateRow label="Canceladas" value={String(summary?.changes.cancelled ?? 0)} ok={(summary?.changes.cancelled ?? 0) === 0} />
+                </div>
+              </div>
+            </div>
+          </Section>
+
+          {/* ---------------------------------------------------------------- */}
           {/* 6. ESTADO DO SGQ                                                 */}
           {/* ---------------------------------------------------------------- */}
 
@@ -956,57 +1027,16 @@ export default function ManagementReviewPage() {
           </Section>
 
           {/* ---------------------------------------------------------------- */}
-          {/* 7. AVALIAÇÃO                                                     */}
+          {/* 7. REUNIÕES                                                      */}
           {/* ---------------------------------------------------------------- */}
 
           <Section
-            title="Avaliação pela Gestão"
-            subtitle="Análise e conclusões resultantes da apreciação da informação anterior"
+            title="Reuniões de revisão"
+            subtitle="Registo resumido de cada reunião: decisões e saídas (melhorias, alterações, recursos)"
           >
-            <div className="space-y-6">
-              <AssessmentField
-                label="Avaliação global do desempenho do SGQ"
-                value={globalAssessment}
-                onChange={setGlobalAssessment}
-                readOnly={isExternal}
-              />
-
-              <AssessmentField
-                label="Adequação e eficácia do SGQ"
-                value={effectivenessAssessment}
-                onChange={setEffectivenessAssessment}
-                readOnly={isExternal}
-              />
-
-              <AssessmentField
-                label="Oportunidades de melhoria"
-                value={improvementOpportunities}
-                onChange={setImprovementOpportunities}
-                readOnly={isExternal}
-              />
-
-              <AssessmentField
-                label="Necessidades de alteração e/ou recursos"
-                value={resourceNeeds}
-                onChange={setResourceNeeds}
-                readOnly={isExternal}
-              />
-
-              {!isExternal && (
-                <div className="flex justify-end">
-                  <Button
-                    onClick={() =>
-                      toast.success(
-                        "Maquete: avaliação guardada apenas localmente."
-                      )
-                    }
-                  >
-                    <Save className="size-4" />
-                    Guardar avaliação
-                  </Button>
-                </div>
-              )}
-            </div>
+            {selectedYearId !== null && (
+              <MeetingsSection yearId={selectedYearId} userId={Number(user?.id ?? 1)} readOnly={isExternal} />
+            )}
           </Section>
 
           {/* ---------------------------------------------------------------- */}
@@ -1127,7 +1157,7 @@ export default function ManagementReviewPage() {
       <LogDialog
         open={logOpen}
         onOpenChange={setLogOpen}
-        entityType="MANAGEMENT_REVIEW"
+        entityTypes={["MANAGEMENT_REVIEW", "MANAGEMENT_REVIEW_MEETING"]}
         yearId={selectedYearId ?? undefined}
         title="Histórico — Revisão pela Gestão"
       />
@@ -1373,40 +1403,6 @@ function StateRow({
           />
         )}
       </div>
-    </div>
-  );
-}
-
-function AssessmentField({
-  label,
-  value,
-  onChange,
-  readOnly = false,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  readOnly?: boolean;
-}) {
-  return (
-    <div>
-      <Label className="font-semibold">
-        {label}
-      </Label>
-
-      <textarea
-        value={value}
-        onChange={(event) =>
-          onChange(event.target.value)
-        }
-        readOnly={readOnly}
-        placeholder={
-          readOnly
-            ? "Nenhuma avaliação registada."
-            : "Registe a apreciação da gestão..."
-        }
-        className="w-full min-h-28 mt-2 p-4 bg-muted border border-border rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 leading-relaxed read-only:opacity-70"
-      />
     </div>
   );
 }

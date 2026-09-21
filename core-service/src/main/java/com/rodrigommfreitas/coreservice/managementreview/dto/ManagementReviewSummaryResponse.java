@@ -13,7 +13,11 @@ public record ManagementReviewSummaryResponse(
         List<ObjectiveSummary> objectives,
         List<NonConformitySummary> nonConformities,
         List<ActionSummary> actions,
-        DocumentsSummary documents
+        DocumentsSummary documents,
+        AuditsSummary audits,
+        CustomerSatisfactionSummary customerSatisfaction,
+        SuppliersSummary suppliers,
+        ChangesSummary changes
 ) {
 
     public record Overview(
@@ -94,5 +98,43 @@ public record ManagementReviewSummaryResponse(
             long inForce,
             long pendingApproval,
             long withoutApprovedVersion
+    ) {}
+
+    /** Auditorias do ano (9.3.2 c). */
+    public record AuditsSummary(
+            int total,
+            int finished,
+            int planned,
+            int canceled,
+            int internal,
+            int external
+    ) {}
+
+    /** Satisfação de clientes/estudantes: se há relatório do ano e quantos documentos o suportam. */
+    public record CustomerSatisfactionSummary(
+            boolean hasYear,
+            int documents
+    ) {}
+
+    /**
+     * Desempenho dos fornecedores no ano: avaliações registadas e distribuição por
+     * classificação (texto livre, agrupado tal como foi escrito; vazio conta como "Sem classificação").
+     */
+    public record SuppliersSummary(
+            int suppliers,
+            int reviews,
+            int suppliersEvaluated,
+            List<ClassificationCount> classifications
+    ) {}
+
+    public record ClassificationCount(String classification, int count) {}
+
+    /** Alterações ao sistema criadas no ano (6.3 / 9.3.2). */
+    public record ChangesSummary(
+            int total,
+            int initiated,
+            int inProgress,
+            int finished,
+            int cancelled
     ) {}
 }

@@ -1,6 +1,13 @@
 package com.rodrigommfreitas.coreservice.managementreview;
 
 import com.rodrigommfreitas.coreservice.document.Document;
+import com.rodrigommfreitas.coreservice.audit.AuditRepository;
+import com.rodrigommfreitas.coreservice.audit.AuditStatus;
+import com.rodrigommfreitas.coreservice.audit.AuditType;
+import com.rodrigommfreitas.coreservice.change.ChangeRepository;
+import com.rodrigommfreitas.coreservice.change.ChangeStatus;
+import com.rodrigommfreitas.coreservice.customersatisfaction.CustomerSatisfactionYearRepository;
+import com.rodrigommfreitas.coreservice.supplier.SupplierRepository;
 import com.rodrigommfreitas.coreservice.document.DocumentRepository;
 import com.rodrigommfreitas.coreservice.document.DocumentService;
 import com.rodrigommfreitas.coreservice.document.DocumentStatus;
@@ -67,6 +74,10 @@ public class ManagementReviewService {
     private final ImprovementOpportunityYearRepository improvementOpportunityYearRepository;
     private final RiskOpportunityYearRepository riskOpportunityYearRepository;
     private final UserRepository userRepository;
+    private final AuditRepository auditRepository;
+    private final CustomerSatisfactionYearRepository customerSatisfactionYearRepository;
+    private final SupplierRepository supplierRepository;
+    private final ChangeRepository changeRepository;
 
     @Transactional(readOnly = true)
     public ManagementReviewResponse get() {
@@ -502,7 +513,70 @@ public class ManagementReviewService {
                 objectiveSummaries,
                 nonConformitySummaries,
                 actionSummaries,
-                documentsSummary
+                documentsSummary,
+                buildAudits(yearId),
+                buildCustomerSatisfaction(yearId),
+                buildSuppliers(yearId),
+                buildChanges(yearId)
+        );
+    }
+
+    private ManagementReviewSummaryResponse.AuditsSummary buildAudits(Long yearId) {
+        var audits = auditRepository.findByYearId(yearId);
+        return new ManagementReviewSummaryResponse.AuditsSummary(
+                audits.size(),
+                (int) audits.stream().filter(a -> a.getStatus() == AuditStatus.FINISHED).count(),
+                (int) audits.stream().filter(a -> a.getStatus() != null
+                        && a.getStatus() != AuditStatus.FINISHED && a.getStatus() != AuditStatus.CANCELED).count(),
+                (int) audits.stream().filter(a -> a.getStatus() == AuditStatus.CANCELED).count(),
+                (int) audits.stream().filter(a -> a.getType() == AuditType.INTERNAL).count(),
+                (int) audits.stream().filter(a -> a.getType() == AuditType.EXTERNAL).count()
+        );
+    }
+
+    private ManagementReviewSummaryResponse.CustomerSatisfactionSummary buildCustomerSatisfaction(Long yearId) {
+        var years = customerSatisfactionYearRepository.findAllByYearId(yearId);
+        return new ManagementReviewSummaryResponse.CustomerSatisfactionSummary(
+                !years.isEmpty(),
+                years.stream().mapToInt(y -> y.getDocuments() == null ? 0 : y.getDocuments().size()).sum()
+        );
+    }
+
+    private ManagementReviewSummaryResponse.SuppliersSummary buildSuppliers(Long yearId) {
+        Integer calendarYear = yearRepo.findById(yearId).map(y -> y.getYear()).orElse(null);
+        var suppliers = supplierRepository.findAll();
+        Map<String, Integer> byClassification = new TreeMap<>();
+        int reviews = 0;
+        int evaluated = 0;
+        for (var supplier : suppliers) {
+            int count = 0;
+            for (var review : supplier.getReviews()) {
+                if (calendarYear == null || !calendarYear.equals(review.getEvaluationYear())) continue;
+                count++;
+                String c = review.getClassification();
+                byClassification.merge(c == null || c.isBlank() ? "Sem classificação" : c.trim(), 1, Integer::sum);
+            }
+            reviews += count;
+            if (count > 0) evaluated++;
+        }
+        var classifications = byClassification.entrySet().stream()
+                .map(e -> new ManagementReviewSummaryResponse.ClassificationCount(e.getKey(), e.getValue()))
+                .toList();
+        return new ManagementReviewSummaryResponse.SuppliersSummary(suppliers.size(), reviews, evaluated, classifications);
+    }
+
+    private ManagementReviewSummaryResponse.ChangesSummary buildChanges(Long yearId) {
+        Integer calendarYear = yearRepo.findById(yearId).map(y -> y.getYear()).orElse(null);
+        if (calendarYear == null) return new ManagementReviewSummaryResponse.ChangesSummary(0, 0, 0, 0, 0);
+        var changes = changeRepository.findByCreatedAtBetween(
+                java.time.LocalDate.of(calendarYear, 1, 1).atStartOfDay(),
+                java.time.LocalDate.of(calendarYear, 12, 31).atTime(23, 59, 59));
+        return new ManagementReviewSummaryResponse.ChangesSummary(
+                changes.size(),
+                (int) changes.stream().filter(c -> c.getStatus() == ChangeStatus.INITIATED).count(),
+                (int) changes.stream().filter(c -> c.getStatus() == ChangeStatus.IN_PROGRESS).count(),
+                (int) changes.stream().filter(c -> c.getStatus() == ChangeStatus.FINISHED).count(),
+                (int) changes.stream().filter(c -> c.getStatus() == ChangeStatus.CANCELLED).count()
         );
     }
 

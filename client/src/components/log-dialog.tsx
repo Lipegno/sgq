@@ -79,10 +79,17 @@ const entityTypeLabels: Record<string, string> = {
   CORRECTIVE_ACTION: "Ação Corretiva",
   RISK_ACTION: "Ação",
   MANAGEMENT_REVIEW: "Revisão pela Gestão",
+  MANAGEMENT_REVIEW_MEETING: "Reunião de revisão",
   DOCUMENTED_INFORMATION: "Informação Documentada",
 };
 
 const fieldLabels: Record<string, string> = {
+  meetingDate: "Data da reunião",
+  participants: "Participantes",
+  decisions: "Decisões",
+  improvementOutputs: "Oportunidades de melhoria",
+  changeNeeds: "Alterações ao sistema",
+  resourceNeeds: "Necessidades de recursos",
   semester: "Semestre",
   criteriaSentDate: "Envio dos critérios",
   reviewDate: "Data da avaliação",
