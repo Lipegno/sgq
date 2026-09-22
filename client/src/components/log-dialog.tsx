@@ -84,6 +84,8 @@ const entityTypeLabels: Record<string, string> = {
 };
 
 const fieldLabels: Record<string, string> = {
+  audit: "Auditoria de origem",
+  nextDueDate: "Próxima data prevista",
   meetingDate: "Data da reunião",
   participants: "Participantes",
   decisions: "Decisões",

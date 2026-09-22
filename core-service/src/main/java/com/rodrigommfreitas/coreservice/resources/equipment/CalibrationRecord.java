@@ -22,6 +22,9 @@ public class CalibrationRecord {
     private Equipment equipment;
 
     private LocalDate date;
+
+    /** Próxima data prevista (calibração/manutenção seguinte). Opcional. */
+    private LocalDate nextDueDate;
     private String performedBy;
     private String result;
     private String description;

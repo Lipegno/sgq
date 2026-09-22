@@ -36,6 +36,8 @@ export interface NonConformityResponse {
   cause: string | null;
   responsible: UserSummary | null;
   origin: NonConformityOrigin;
+  auditId: number | null;
+  auditName: string | null;
   department: DepartmentResponse | null;
   years: NonConformityYearResponse[];
   correctiveActions: CorrectiveActionResponse[];
@@ -61,6 +63,7 @@ export interface CreateNonConformityRequest {
   responsibleId?: number | null;
   departmentId?: number | null;
   origin: NonConformityOrigin;
+  auditId?: number | null;
   yearIds: number[];
 
   whatWillBeDone?: string | null;
@@ -83,6 +86,7 @@ export interface UpdateNonConformityRequest {
   responsibleId?: number | null;
   departmentId?: number | null;
   origin?: NonConformityOrigin;
+  auditId?: number | null;
 
   whatWillBeDone?: string | null;
   why?: string | null;
@@ -842,6 +846,7 @@ export interface UpdateInfrastructureRequest {
 export interface MaintenanceRecordResponse {
   id: number;
   date: string;
+  nextDueDate: string | null;
   type: string;
   performedBy: string;
   description: string;
@@ -850,6 +855,7 @@ export interface MaintenanceRecordResponse {
 export interface CalibrationRecordResponse {
   id: number;
   date: string;
+  nextDueDate: string | null;
   performedBy: string;
   result: string;
   description: string;
@@ -867,6 +873,8 @@ export interface EquipmentResponse {
   years: YearOption[];
   maintenanceHistory: MaintenanceRecordResponse[];
   calibrationHistory: CalibrationRecordResponse[];
+  nextMaintenanceDueDate: string | null;
+  nextCalibrationDueDate: string | null;
 }
 
 export interface CreateEquipmentRequest {
@@ -889,6 +897,7 @@ export interface UpdateEquipmentRequest {
 
 export interface CreateMaintenanceRecordRequest {
   date: string;
+  nextDueDate: string | null;
   type: string;
   performedBy: string;
   description: string;
@@ -896,6 +905,7 @@ export interface CreateMaintenanceRecordRequest {
 
 export interface CreateCalibrationRecordRequest {
   date: string;
+  nextDueDate: string | null;
   performedBy: string;
   result: string;
   description: string;

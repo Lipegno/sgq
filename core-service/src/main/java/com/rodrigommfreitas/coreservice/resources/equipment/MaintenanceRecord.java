@@ -22,6 +22,9 @@ public class MaintenanceRecord {
     private Equipment equipment;
 
     private LocalDate date;
+
+    /** Próxima data prevista (calibração/manutenção seguinte). Opcional. */
+    private LocalDate nextDueDate;
     private String type;
     private String performedBy;
     private String description;

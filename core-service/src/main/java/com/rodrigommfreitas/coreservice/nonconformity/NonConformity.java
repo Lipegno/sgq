@@ -1,6 +1,7 @@
 package com.rodrigommfreitas.coreservice.nonconformity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.rodrigommfreitas.coreservice.audit.Audit;
 import com.rodrigommfreitas.coreservice.department.Department;
 import com.rodrigommfreitas.coreservice.user.User;
 import jakarta.persistence.*;
@@ -41,6 +42,11 @@ public class NonConformity {
 
     @Enumerated(EnumType.STRING)
     private NonConformityOrigin origin;
+    /** Auditoria de origem, quando origin é INTERNAL_AUDIT/EXTERNAL_AUDIT. Opcional. */
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "audit_id")
+    private Audit audit;
 
 
     // ==========================================

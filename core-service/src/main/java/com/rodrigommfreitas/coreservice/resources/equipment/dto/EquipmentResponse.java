@@ -1,5 +1,7 @@
 package com.rodrigommfreitas.coreservice.resources.equipment.dto;
 
+import java.time.LocalDate;
+
 import com.rodrigommfreitas.coreservice.user.dto.UserSummary;
 import com.rodrigommfreitas.coreservice.year.dto.YearOption;
 
@@ -18,5 +20,7 @@ public record EquipmentResponse(
         List<YearOption> years,
 
         List<MaintenanceRecordResponse> maintenanceHistory,
-        List<CalibrationRecordResponse> calibrationHistory
+        List<CalibrationRecordResponse> calibrationHistory,
+        LocalDate nextMaintenanceDueDate,
+        LocalDate nextCalibrationDueDate
 ) {}

@@ -4,6 +4,8 @@ import com.rodrigommfreitas.coreservice.audit.dto.*;
 import com.rodrigommfreitas.coreservice.document.DocumentService;
 import com.rodrigommfreitas.coreservice.document.dto.DocumentResponse;
 import com.rodrigommfreitas.coreservice.document.dto.UploadDocumentRequest;
+import com.rodrigommfreitas.coreservice.nonconformity.NonConformityService;
+import com.rodrigommfreitas.coreservice.nonconformity.dto.NonConformityResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +20,7 @@ public class AuditController {
 
     private final AuditService service;
     private final DocumentService documentService;
+    private final NonConformityService nonConformityService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -39,6 +42,11 @@ public class AuditController {
     @GetMapping("/year/{yearId}")
     public List<AuditResponse> getByYear(@PathVariable Long yearId) {
         return service.getByYear(yearId);
+    }
+
+    @GetMapping("/{id}/non-conformities")
+    public List<NonConformityResponse> getNonConformities(@PathVariable Long id) {
+        return nonConformityService.getByAuditId(id);
     }
 
     @PostMapping("/{id}/documents")

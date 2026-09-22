@@ -12,6 +12,7 @@ public record CreateNonConformityRequest(
         Long responsibleId,
         Long departmentId,
         NonConformityOrigin origin,
+        Long auditId,
         Set<Long> yearIds,
         //novos campos
         String whatWillBeDone,

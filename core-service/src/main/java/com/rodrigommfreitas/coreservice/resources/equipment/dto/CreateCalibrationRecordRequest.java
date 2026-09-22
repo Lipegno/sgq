@@ -4,6 +4,7 @@ import java.time.LocalDate;
 
 public record CreateCalibrationRecordRequest(
         LocalDate date,
+        LocalDate nextDueDate,
         String performedBy,
         String result,
         String description

@@ -85,6 +85,42 @@ const TABS: { key: ResourceTab; label: string; icon: typeof Users }[] = [
   { key: "emm", label: "7.1.5. EMM", icon: Zap },
 ];
 
+const DUE_SOON_DAYS = 30;
+
+type DueStatus = "none" | "overdue" | "soon" | "ok";
+
+function dueStatus(dueDate: string | null): DueStatus {
+  if (!dueDate) return "none";
+  const days = (new Date(dueDate + "T00:00:00").getTime() - Date.now()) / 86_400_000;
+  if (days < 0) return "overdue";
+  if (days <= DUE_SOON_DAYS) return "soon";
+  return "ok";
+}
+
+const DUE_STATUS_STYLES: Record<DueStatus, string> = {
+  none: "bg-muted text-muted-foreground",
+  overdue: "bg-red-100 text-red-700",
+  soon: "bg-amber-100 text-amber-700",
+  ok: "bg-green-100 text-green-700",
+};
+
+const DUE_STATUS_LABELS: Record<DueStatus, string> = {
+  none: "Sem data prevista",
+  overdue: "Vencida",
+  soon: "A vencer",
+  ok: "Válida",
+};
+
+function DueBadge({ dueDate }: { dueDate: string | null }) {
+  const status = dueStatus(dueDate);
+  const formatted = dueDate ? new Date(dueDate + "T00:00:00").toLocaleDateString("pt-PT") : null;
+  return (
+    <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap ${DUE_STATUS_STYLES[status]}`}>
+      {formatted ? `${DUE_STATUS_LABELS[status]} — ${formatted}` : DUE_STATUS_LABELS[status]}
+    </span>
+  );
+}
+
 function HumanResourceResponsibilities({
   humanResourceYearId,
 }: {
@@ -226,6 +262,7 @@ export default function ResourcesPage() {
   const [maintModalForEquipId, setMaintModalForEquipId] = useState<number | null>(null);
   const [maintForm, setMaintForm] = useState<CreateMaintenanceRecordRequest>({
     date: "",
+    nextDueDate: null,
     type: "",
     performedBy: "",
     description: "",
@@ -233,6 +270,7 @@ export default function ResourcesPage() {
   const [calModalForEquipId, setCalModalForEquipId] = useState<number | null>(null);
   const [calForm, setCalForm] = useState<CreateCalibrationRecordRequest>({
     date: "",
+    nextDueDate: null,
     performedBy: "",
     result: "",
     description: "",
@@ -317,12 +355,14 @@ export default function ResourcesPage() {
   }, [yearDialogEquipId, equipment]);
 
   const equipStats = useMemo(() => {
-    if (!equipment) return { total: 0, active: 0, maintCount: 0, calCount: 0 };
+    if (!equipment) return { total: 0, active: 0, maintCount: 0, calCount: 0, maintOverdue: 0, calOverdue: 0 };
     return {
       total: equipment.length,
       active: equipment.filter((e) => e.isActive).length,
       maintCount: equipment.reduce((acc, e) => acc + (e.maintenanceHistory?.length ?? 0), 0),
       calCount: equipment.reduce((acc, e) => acc + (e.calibrationHistory?.length ?? 0), 0),
+      maintOverdue: equipment.filter((e) => dueStatus(e.nextMaintenanceDueDate) === "overdue" || dueStatus(e.nextMaintenanceDueDate) === "soon").length,
+      calOverdue: equipment.filter((e) => dueStatus(e.nextCalibrationDueDate) === "overdue" || dueStatus(e.nextCalibrationDueDate) === "soon").length,
     };
   }, [equipment]);
 
@@ -1082,6 +1122,9 @@ export default function ResourcesPage() {
               </div>
               <div className="text-3xl font-bold text-foreground mb-1">{equipStats.maintCount}</div>
               <p className="text-xs text-muted-foreground font-medium">Registos de manutenção</p>
+              {equipStats.maintOverdue > 0 && (
+                <p className="text-xs text-red-600 font-semibold mt-1">{equipStats.maintOverdue} vencida(s) ou a vencer</p>
+              )}
             </div>
             <div className="bg-card border border-border p-6 rounded-2xl shadow-sm">
               <div className="flex items-center justify-between mb-4">
@@ -1092,6 +1135,9 @@ export default function ResourcesPage() {
               </div>
               <div className="text-3xl font-bold text-foreground mb-1">{equipStats.calCount}</div>
               <p className="text-xs text-muted-foreground font-medium">Registos de calibração</p>
+              {equipStats.calOverdue > 0 && (
+                <p className="text-xs text-red-600 font-semibold mt-1">{equipStats.calOverdue} vencida(s) ou a vencer</p>
+              )}
             </div>
           </div>
 
@@ -1133,6 +1179,7 @@ export default function ResourcesPage() {
                     <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Tipo / Localização</th>
                     <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Manutenção</th>
                     <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Calibração</th>
+                    <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Próxima verificação</th>
                     <th className="px-6 py-4 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Estado</th>
                     <th className="px-6 py-4"></th>
                   </tr>
@@ -1158,6 +1205,15 @@ export default function ResourcesPage() {
                       </td>
                       <td className="px-6 py-4">
                         <span className="text-xs text-foreground font-medium">{item.calibrationHistory?.length ?? 0} registos</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1 items-start">
+                          {item.nextMaintenanceDueDate && <DueBadge dueDate={item.nextMaintenanceDueDate} />}
+                          {item.nextCalibrationDueDate && <DueBadge dueDate={item.nextCalibrationDueDate} />}
+                          {!item.nextMaintenanceDueDate && !item.nextCalibrationDueDate && (
+                            <span className="text-[10px] text-muted-foreground">Sem data prevista</span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
@@ -1709,11 +1765,14 @@ export default function ResourcesPage() {
               {/* Calibration History */}
               <section className="bg-muted/30 rounded-2xl p-5 space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                    <Activity size={14} /> Calibração
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                      <Activity size={14} /> Calibração
+                    </h3>
+                    <DueBadge dueDate={selectedEquip.nextCalibrationDueDate} />
+                  </div>
                   {!isExternal && (
-                    <Button size="sm" variant="outline" onClick={() => { setCalModalForEquipId(selectedEquip.id); setCalForm({ date: "", performedBy: "", result: "", description: "" }); }}>
+                    <Button size="sm" variant="outline" onClick={() => { setCalModalForEquipId(selectedEquip.id); setCalForm({ date: "", nextDueDate: null, performedBy: "", result: "", description: "" }); }}>
                       <Plus size={14} /> Adicionar
                     </Button>
                   )}
@@ -1735,6 +1794,7 @@ export default function ResourcesPage() {
                           </div>
                           {r.description && <p className="text-xs text-muted-foreground">{r.description}</p>}
                           <p className="text-[10px] text-muted-foreground flex items-center gap-1"><span className="text-muted-foreground/50">Por:</span> {r.performedBy}</p>
+                          {r.nextDueDate && <p className="text-[10px] text-muted-foreground">Próxima calibração prevista: {new Date(r.nextDueDate + "T00:00:00").toLocaleDateString("pt-PT")}</p>}
                         </div>
                         {!isExternal && (
                           <button onClick={() => delCalMutation.mutate({ equipId: selectedEquip.id, recordId: r.id })}
@@ -1751,11 +1811,14 @@ export default function ResourcesPage() {
               {/* Maintenance History */}
               <section className="bg-muted/30 rounded-2xl p-5 space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                    <Wrench size={14} /> Manutenção
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                      <Wrench size={14} /> Manutenção
+                    </h3>
+                    <DueBadge dueDate={selectedEquip.nextMaintenanceDueDate} />
+                  </div>
                   {!isExternal && (
-                    <Button size="sm" variant="outline" onClick={() => { setMaintModalForEquipId(selectedEquip.id); setMaintForm({ date: "", type: "", performedBy: "", description: "" }); }}>
+                    <Button size="sm" variant="outline" onClick={() => { setMaintModalForEquipId(selectedEquip.id); setMaintForm({ date: "", nextDueDate: null, type: "", performedBy: "", description: "" }); }}>
                       <Plus size={14} /> Adicionar
                     </Button>
                   )}
@@ -1777,6 +1840,7 @@ export default function ResourcesPage() {
                           </div>
                           {r.description && <p className="text-xs text-muted-foreground">{r.description}</p>}
                           <p className="text-[10px] text-muted-foreground flex items-center gap-1"><span className="text-muted-foreground/50">Por:</span> {r.performedBy}</p>
+                          {r.nextDueDate && <p className="text-[10px] text-muted-foreground">Próxima manutenção prevista: {new Date(r.nextDueDate + "T00:00:00").toLocaleDateString("pt-PT")}</p>}
                         </div>
                         {!isExternal && (
                           <button onClick={() => delMaintMutation.mutate({ equipId: selectedEquip.id, recordId: r.id })}
@@ -1824,6 +1888,15 @@ export default function ResourcesPage() {
                 <option value="PREVENTIVE">Preventiva</option>
                 <option value="CORRECTIVE">Corretiva</option>
               </select>
+            </div>
+            <div className="grid gap-2">
+              <Label>Próxima manutenção prevista (opcional)</Label>
+              <input
+                type="date"
+                value={maintForm.nextDueDate ?? ""}
+                onChange={e => setMaintForm(p => ({ ...p, nextDueDate: e.target.value || null }))}
+                className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
             </div>
             <div className="grid gap-2">
               <Label>Executado por</Label>
@@ -1894,6 +1967,15 @@ export default function ResourcesPage() {
                 <option value="PASS">Aprovado</option>
                 <option value="FAIL">Reprovado</option>
               </select>
+            </div>
+            <div className="grid gap-2">
+              <Label>Próxima calibração prevista (opcional)</Label>
+              <input
+                type="date"
+                value={calForm.nextDueDate ?? ""}
+                onChange={e => setCalForm(p => ({ ...p, nextDueDate: e.target.value || null }))}
+                className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
             </div>
             <div className="grid gap-2">
               <Label>Executado por</Label>

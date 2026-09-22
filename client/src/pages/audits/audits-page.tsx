@@ -41,6 +41,7 @@ import {
   ChevronDown,
   ChevronRight,
   Mail,
+  AlertTriangle,
 } from "lucide-react";
 import {
   getYears,
@@ -54,6 +55,7 @@ import {
   createExternalUser,
   getExternalUsersByYear,
   getDepartments,
+  getAuditNonConformities,
 } from "@/api/core";
 import ConfirmDialog from "@/components/confirm-dialog";
 import { YearSelector } from "@/components/year-selector";
@@ -66,6 +68,7 @@ import type {
   EntityType,
   ExternalUserResponse,
   DepartmentResponse,
+  NonConformityStatus,
 } from "@/types";
 
 const STATUS_LABELS: Record<AuditStatus, string> = {
@@ -86,6 +89,13 @@ const STATUS_OPTIONS: { value: AuditStatus; label: string }[] = [
 const TYPE_LABELS: Record<AuditType, string> = {
   INTERNAL: "Interna",
   EXTERNAL: "Externa",
+};
+
+const NC_STATUS_LABELS: Record<NonConformityStatus, string> = {
+  OPEN: "Aberta",
+  UNDER_TREATMENT: "Em Tratamento",
+  FINISHED: "Concluída",
+  CLASSIFIED: "Classificada",
 };
 
 const TYPE_OPTIONS: { value: AuditType; label: string }[] = [
@@ -159,6 +169,12 @@ export default function AuditsPage() {
     queryKey: ["externalUsers", editItem?.yearId],
     queryFn: () => getExternalUsersByYear(editItem!.yearId),
     enabled: editItem !== null && formType === "EXTERNAL",
+  });
+
+  const { data: linkedNonConformities } = useQuery({
+    queryKey: ["audit-non-conformities", editItem?.id],
+    queryFn: () => getAuditNonConformities(editItem!.id),
+    enabled: editItem !== null,
   });
 
   const { data: audits, isLoading } = useQuery({
@@ -700,6 +716,40 @@ export default function AuditsPage() {
                         </div>
                       </div>
                     </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Non-Conformities Section — rasto de auditoria (9.2 → 10.2) */}
+            {editItem && (
+              <div>
+                <div className="flex items-center justify-between border-b border-border pb-2 mb-3">
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    <AlertTriangle size={14} />
+                    Não conformidades geradas
+                  </h4>
+                </div>
+                {!linkedNonConformities || linkedNonConformities.length === 0 ? (
+                  <p className="text-sm text-muted-foreground italic">Nenhuma não conformidade ligada a esta auditoria.</p>
+                ) : (
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
+                    {linkedNonConformities.map((nc) => {
+                      const status = nc.years.find((y) => y.yearId === editItem.yearId)?.status ?? nc.years[0]?.status;
+                      return (
+                        <div
+                          key={nc.id}
+                          className="flex items-center justify-between text-sm bg-card border border-border px-3 py-2 rounded-lg shadow-sm"
+                        >
+                          <span className="font-semibold text-foreground truncate">{nc.name}</span>
+                          {status && (
+                            <Badge variant="outline" className="shrink-0 ml-2">
+                              {NC_STATUS_LABELS[status]}
+                            </Badge>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

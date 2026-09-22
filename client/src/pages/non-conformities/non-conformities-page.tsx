@@ -59,6 +59,7 @@ import {
   updateNonConformityYear,
   associateNonConformityYears,
   getDepartments,
+  getAuditsByYear,
 } from "@/api/core";
 import { LogDialog } from "@/components/log-dialog";
 import { YearSelector } from "@/components/year-selector";
@@ -177,6 +178,7 @@ export default function NonConformitiesPage() {
   const [addCause, setAddCause] = useState("");
   const [addOrigin, setAddOrigin] = useState<NonConformityOrigin>("NOT_SPECIFIED");
   const [addDepartmentId, setAddDepartmentId] = useState<number | null>(null);
+  const [addAuditId, setAddAuditId] = useState<number | null>(null);
 
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -185,6 +187,7 @@ export default function NonConformitiesPage() {
   const [editCause, setEditCause] = useState("");
   const [editOrigin, setEditOrigin] = useState<NonConformityOrigin>("NOT_SPECIFIED");
   const [editDepartmentId, setEditDepartmentId] = useState<number | null>(null);
+  const [editAuditId, setEditAuditId] = useState<number | null>(null);
 
   const [editYearDialogOpen, setEditYearDialogOpen] = useState(false);
   const [editYearStatus, setEditYearStatus] = useState<NonConformityStatus>("OPEN");
@@ -225,6 +228,12 @@ export default function NonConformitiesPage() {
   const { data: years } = useQuery({ queryKey: ["years"], queryFn: getYears });
   const { data: departments } = useQuery({ queryKey: ["departments"], queryFn: getDepartments });
   const effectiveYearId = selectedYearId;
+  const { data: auditsForYear } = useQuery({
+    queryKey: ["audits", effectiveYearId],
+    queryFn: () => getAuditsByYear(effectiveYearId!),
+    enabled: effectiveYearId !== null,
+  });
+  const isAuditOrigin = (origin: NonConformityOrigin) => origin === "INTERNAL_AUDIT" || origin === "EXTERNAL_AUDIT";
 
   // Variáveis para a matriz 5W2H
 const [addWhatWillBeDone, setAddWhatWillBeDone] = useState("");
@@ -403,6 +412,7 @@ const [addVerificationResponsible, setAddVerificationResponsible] = useState("")
     setAddCause("");
     setAddOrigin("NOT_SPECIFIED");
     setAddDepartmentId(null);
+    setAddAuditId(null);
 
     setAddWhatWillBeDone("");
     setAddWhy("");
@@ -425,6 +435,7 @@ const [addVerificationResponsible, setAddVerificationResponsible] = useState("")
       description: addDescription.trim() || null,
       cause: addCause.trim() || null,
       origin: addOrigin,
+      auditId: isAuditOrigin(addOrigin) ? addAuditId : null,
       yearIds: [effectiveYearId],
       responsibleId: user?.id ?? null,
       departmentId: addDepartmentId,
@@ -451,6 +462,7 @@ const [addVerificationResponsible, setAddVerificationResponsible] = useState("")
     setEditCause(nc.cause ?? "");
     setEditOrigin(nc.origin);
     setEditDepartmentId(nc.department?.id ?? null);
+    setEditAuditId(nc.auditId ?? null);
     // Adiciona isto para carregar os novos campos:
     setEditWhatWillBeDone(nc.whatWillBeDone || "");
     setEditWhy(nc.why || "");
@@ -477,6 +489,7 @@ const [addVerificationResponsible, setAddVerificationResponsible] = useState("")
         description: editDescription.trim() || null,
         cause: editCause.trim() || null,
         origin: editOrigin,
+        auditId: isAuditOrigin(editOrigin) ? (editAuditId ?? 0) : 0,
         departmentId: editDepartmentId,
         // Envia os dados editados do plano de ação
         whatWillBeDone: editWhatWillBeDone.trim() || null,
@@ -807,6 +820,15 @@ const [addVerificationResponsible, setAddVerificationResponsible] = useState("")
                       <span className="font-medium text-foreground">{ORIGIN_LABELS[selectedNC.origin]}</span>
                     </span>
                   </div>
+                  {selectedNC.auditName && (
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck size={14} className="text-muted-foreground" />
+                      <span className="text-sm">
+                        <span className="text-muted-foreground">Auditoria de origem: </span>
+                        <span className="font-medium text-foreground">{selectedNC.auditName}</span>
+                      </span>
+                    </div>
+                  )}
                   {selectedNC.responsible && (
                     <div className="flex items-center gap-2">
                       <User size={14} className="text-muted-foreground" />
@@ -1076,6 +1098,18 @@ const [addVerificationResponsible, setAddVerificationResponsible] = useState("")
               </SelectContent>
             </Select>
           </div>
+          {isAuditOrigin(addOrigin) && (
+            <div className="flex flex-col gap-1.5 col-span-2">
+              <Label>Auditoria de origem</Label>
+              <Select value={addAuditId?.toString() ?? "none"} onValueChange={(v) => setAddAuditId(v === "none" ? null : Number(v))}>
+                <SelectTrigger><SelectValue placeholder="Selecionar auditoria" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhuma</SelectItem>
+                  {auditsForYear?.map((a) => (<SelectItem key={a.id} value={a.id.toString()}>{a.name}</SelectItem>))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="flex flex-col gap-1.5 col-span-2">
             <Label>Descrição do Problema</Label>
             <textarea className="w-full h-20 px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground resize-none outline-none focus:ring-2 focus:ring-primary/20 transition-all" value={addDescription} onChange={(e) => setAddDescription(e.target.value)} placeholder="Detalhes do que aconteceu..." />
@@ -1195,6 +1229,18 @@ const [addVerificationResponsible, setAddVerificationResponsible] = useState("")
               </SelectContent>
             </Select>
           </div>
+          {isAuditOrigin(editOrigin) && (
+            <div className="flex flex-col gap-1.5 col-span-2">
+              <Label>Auditoria de origem</Label>
+              <Select value={editAuditId?.toString() ?? "none"} onValueChange={(v) => setEditAuditId(v === "none" ? null : Number(v))}>
+                <SelectTrigger><SelectValue placeholder="Selecionar auditoria" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhuma</SelectItem>
+                  {auditsForYear?.map((a) => (<SelectItem key={a.id} value={a.id.toString()}>{a.name}</SelectItem>))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="flex flex-col gap-1.5 col-span-2">
             <Label>Descrição do Problema</Label>
             <textarea className="w-full h-20 px-3 py-2 rounded-lg border border-border bg-background text-sm text-foreground resize-none outline-none focus:ring-2 focus:ring-primary/20 transition-all" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Detalhes do que aconteceu..." />

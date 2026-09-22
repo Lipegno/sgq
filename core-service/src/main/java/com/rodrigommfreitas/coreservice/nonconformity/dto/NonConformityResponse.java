@@ -15,6 +15,8 @@ public record NonConformityResponse(
         UserSummary responsible,
         DepartmentResponse department,
         NonConformityOrigin origin,
+        Long auditId,
+        String auditName,
         List<NonConformityYearDetail> years,
         List<CorrectiveActionResponse> correctiveActions,
         //novos campos

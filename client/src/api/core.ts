@@ -1485,6 +1485,11 @@ export const deleteAuditDocument = async (id: number, documentId: number): Promi
   await api.delete(`/audits/${id}/documents/${documentId}`);
 };
 
+export const getAuditNonConformities = async (id: number): Promise<NonConformityResponse[]> => {
+  const res = await api.get(`/audits/${id}/non-conformities`);
+  return res.data;
+};
+
 export const createExternalUser = async (data: CreateExternalUserRequest): Promise<{ id: number; email: string }> => {
   const res = await api.post("/users/external", data);
   return res.data;

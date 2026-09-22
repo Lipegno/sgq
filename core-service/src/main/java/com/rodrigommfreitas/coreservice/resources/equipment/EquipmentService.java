@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -249,6 +250,7 @@ equipment.getName() + " — " + String.valueOf(year.getYear()),
         MaintenanceRecord record = MaintenanceRecord.builder()
                 .equipment(equipment)
                 .date(request.date())
+                .nextDueDate(request.nextDueDate())
                 .type(request.type())
                 .performedBy(request.performedBy())
                 .description(request.description())
@@ -258,12 +260,13 @@ equipment.getName() + " — " + String.valueOf(year.getYear()),
         equipment.getMaintenanceHistory().add(record);
 
         Long userId = UserContextHolder.getUserId();
-        Map<String, Object> fields = Map.of(
+        Map<String, Object> fields = new LinkedHashMap<>(Map.of(
                 "date", request.date() != null ? request.date().toString() : "",
                 "type", request.type() != null ? request.type() : "",
                 "performedBy", request.performedBy() != null ? request.performedBy() : "",
                 "equipmentName", equipment.getName()
-        );
+        ));
+        fields.put("nextDueDate", request.nextDueDate() != null ? request.nextDueDate().toString() : "");
         logService.createLog(new CreateLogRequest(
                 userId,
                 EntityType.MAINTENANCE_RECORD,
@@ -327,6 +330,7 @@ equipment.getName() + " — " + String.valueOf(year.getYear()),
         CalibrationRecord record = CalibrationRecord.builder()
                 .equipment(equipment)
                 .date(request.date())
+                .nextDueDate(request.nextDueDate())
                 .performedBy(request.performedBy())
                 .result(request.result())
                 .description(request.description())
@@ -336,12 +340,13 @@ equipment.getName() + " — " + String.valueOf(year.getYear()),
         equipment.getCalibrationHistory().add(record);
 
         Long userId = UserContextHolder.getUserId();
-        Map<String, Object> fields = Map.of(
+        Map<String, Object> fields = new LinkedHashMap<>(Map.of(
                 "date", request.date() != null ? request.date().toString() : "",
                 "result", request.result() != null ? request.result() : "",
                 "performedBy", request.performedBy() != null ? request.performedBy() : "",
                 "equipmentName", equipment.getName()
-        );
+        ));
+        fields.put("nextDueDate", request.nextDueDate() != null ? request.nextDueDate().toString() : "");
         logService.createLog(new CreateLogRequest(
                 userId,
                 EntityType.CALIBRATION_RECORD,
@@ -431,14 +436,35 @@ equipment.getName() + " — " + String.valueOf(year.getYear()),
                 ey.isActive(),
                 years,
                 maintenanceHistory,
-                calibrationHistory
+                calibrationHistory,
+                latestDueDate(equipment.getMaintenanceHistory(), MaintenanceRecord::getDate, MaintenanceRecord::getNextDueDate),
+                latestDueDate(equipment.getCalibrationHistory(), CalibrationRecord::getDate, CalibrationRecord::getNextDueDate)
         );
+    }
+
+    /**
+     * Próxima data prevista de um equipamento: a nextDueDate do registo mais recente
+     * (por data) que tenha essa data definida. Registos mais antigos são ignorados,
+     * porque a validade que interessa é sempre a da última calibração/manutenção feita.
+     */
+    private <T> java.time.LocalDate latestDueDate(
+            List<T> records,
+            java.util.function.Function<T, java.time.LocalDate> dateFn,
+            java.util.function.Function<T, java.time.LocalDate> dueDateFn
+    ) {
+        if (records == null) return null;
+        return records.stream()
+                .filter(r -> dateFn.apply(r) != null)
+                .max(Comparator.comparing(dateFn))
+                .map(dueDateFn)
+                .orElse(null);
     }
 
     private MaintenanceRecordResponse mapToMaintenanceResponse(MaintenanceRecord record) {
         return new MaintenanceRecordResponse(
                 record.getId(),
                 record.getDate(),
+                record.getNextDueDate(),
                 record.getType(),
                 record.getPerformedBy(),
                 record.getDescription()
@@ -449,6 +475,7 @@ equipment.getName() + " — " + String.valueOf(year.getYear()),
         return new CalibrationRecordResponse(
                 record.getId(),
                 record.getDate(),
+                record.getNextDueDate(),
                 record.getPerformedBy(),
                 record.getResult(),
                 record.getDescription()

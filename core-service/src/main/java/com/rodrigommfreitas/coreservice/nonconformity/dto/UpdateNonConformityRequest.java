@@ -11,6 +11,7 @@ public record UpdateNonConformityRequest(
         Long responsibleId,
         Long departmentId,
         NonConformityOrigin origin,
+        Long auditId,
         //novos campos
         // NOVOS CAMPOS
         String whatWillBeDone,

@@ -1,6 +1,8 @@
 package com.rodrigommfreitas.coreservice.nonconformity;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.rodrigommfreitas.coreservice.audit.Audit;
+import com.rodrigommfreitas.coreservice.audit.AuditRepository;
 import com.rodrigommfreitas.coreservice.department.Department;
 import com.rodrigommfreitas.coreservice.department.DepartmentRepository;
 import com.rodrigommfreitas.coreservice.department.dto.DepartmentResponse;
@@ -41,6 +43,7 @@ public class NonConformityService {
     private final UserRepository userRepository;
     private final UserReferenceService userRefService;
     private final DepartmentRepository departmentRepository;
+    private final AuditRepository auditRepository;
     private final LogService logService;
     private final LogDetailsBuilder logDetailsBuilder;
 
@@ -56,6 +59,10 @@ public class NonConformityService {
                 ? departmentRepository.findById(request.departmentId()).orElse(null)
                 : null;
 
+        Audit audit = request.auditId() != null
+                ? auditRepository.findById(request.auditId()).orElse(null)
+                : null;
+
         NonConformity nc = NonConformity.builder()
                 .name(request.name())
                 .description(request.description())
@@ -63,6 +70,7 @@ public class NonConformityService {
                 .responsible(responsible)
                 .department(department)
                 .origin(request.origin())
+                .audit(audit)
                 .whatWillBeDone(request.whatWillBeDone())
                 .why(request.why())
                 .who(request.who())
@@ -109,6 +117,7 @@ public class NonConformityService {
         fields.put("responsible", nc.getResponsible() != null ? userDisplayName(nc.getResponsible()) : "");
         fields.put("department", nc.getDepartment() != null ? nc.getDepartment().getName() : "");
         fields.put("origin", nc.getOrigin() != null ? nc.getOrigin().name() : "");
+        fields.put("audit", nc.getAudit() != null ? nc.getAudit().getName() : "");
         if (!yearValues.isEmpty()) {
             fields.put("year", yearValues);
         }
@@ -138,6 +147,7 @@ public class NonConformityService {
         oldFields.put("responsible", nc.getResponsible() != null ? userDisplayName(nc.getResponsible()) : "");
         oldFields.put("department", nc.getDepartment() != null ? nc.getDepartment().getName() : "");
         oldFields.put("origin", nc.getOrigin() != null ? nc.getOrigin().name() : "");
+        oldFields.put("audit", nc.getAudit() != null ? nc.getAudit().getName() : "");
         oldFields.put("whatWillBeDone", nc.getWhatWillBeDone() != null ? nc.getWhatWillBeDone() : "");
         oldFields.put("why", nc.getWhy() != null ? nc.getWhy() : "");
         oldFields.put("who", nc.getWho() != null ? nc.getWho() : "");
@@ -164,6 +174,12 @@ public class NonConformityService {
             nc.setDepartment(null);
         }
         if (request.origin() != null) nc.setOrigin(request.origin());
+        if (request.auditId() != null && request.auditId() > 0) {
+            Audit audit = auditRepository.findById(request.auditId()).orElse(null);
+            nc.setAudit(audit);
+        } else if (request.auditId() != null && request.auditId() == 0) {
+            nc.setAudit(null);
+        }
 
         if (request.whatWillBeDone() != null) nc.setWhatWillBeDone(request.whatWillBeDone());
         if (request.why() != null) nc.setWhy(request.why());
@@ -186,6 +202,7 @@ public class NonConformityService {
         newFields.put("responsible", nc.getResponsible() != null ? userDisplayName(nc.getResponsible()) : "");
         newFields.put("department", nc.getDepartment() != null ? nc.getDepartment().getName() : "");
         newFields.put("origin", nc.getOrigin() != null ? nc.getOrigin().name() : "");
+        newFields.put("audit", nc.getAudit() != null ? nc.getAudit().getName() : "");
 
         newFields.put("whatWillBeDone", nc.getWhatWillBeDone() != null ? nc.getWhatWillBeDone() : "");
         newFields.put("why", nc.getWhy() != null ? nc.getWhy() : "");
@@ -528,6 +545,11 @@ public class NonConformityService {
 
     // --- Mapping methods ---
 
+    @Transactional(readOnly = true)
+    public List<NonConformityResponse> getByAuditId(Long auditId) {
+        return ncRepository.findByAuditId(auditId).stream().map(this::mapToResponse).toList();
+    }
+
     private NonConformityResponse mapToResponse(NonConformity nc) {
         List<NonConformityYearDetail> years = nc.getYears() != null
                 ? nc.getYears().stream()
@@ -553,6 +575,8 @@ public class NonConformityService {
                 userRefService.fromEntity(nc.getResponsible()),
                 deptResponse,
                 nc.getOrigin(),
+                nc.getAudit() != null ? nc.getAudit().getId() : null,
+                nc.getAudit() != null ? nc.getAudit().getName() : null,
                 years,
                 actions,
                 nc.getWhatWillBeDone(),
