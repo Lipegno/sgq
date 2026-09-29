@@ -20,12 +20,14 @@ public class Indicator {
 
     @Column(nullable = false, unique = true, columnDefinition = "TEXT")
     private String name;
+
+    @Column(columnDefinition = "TEXT")
     private String formula;
 
     @Enumerated(EnumType.STRING)
     private IndicatorFrequency frequency;
 
-    @Column(length = 2000)
+    @Column(columnDefinition = "TEXT")
     private String notes;
 
     @Enumerated(EnumType.STRING)

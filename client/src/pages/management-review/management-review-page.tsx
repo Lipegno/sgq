@@ -37,6 +37,7 @@ import {
   Save,
   ShieldAlert,
   Target,
+  Presentation,
   Upload,
   Users,
 } from "lucide-react";
@@ -47,8 +48,11 @@ import {
   uploadManagementReviewDocument,
   getManagementReviewByYear,
   getManagementReviewSummary,
+  getYears,
 } from "@/api/core";
-import type { NonConformityOrigin, NonConformityStatus } from "@/types.ts";
+import type { NonConformityOrigin } from "@/types.ts";
+import { buildAttentionItems, NC_OPEN_STATUSES, NC_STATUS_LABELS } from "./management-review-attention";
+import { ManagementReviewPresentation } from "./management-review-presentation";
 
 /* -------------------------------------------------------------------------- */
 /*                       NÃO CONFORMIDADES — LABELS                           */
@@ -61,14 +65,8 @@ const NC_ORIGIN_LABELS: Record<NonConformityOrigin, string> = {
   NOT_SPECIFIED: "Não Especificada",
 };
 
-const NC_STATUS_LABELS: Record<NonConformityStatus, string> = {
-  OPEN: "Aberta",
-  UNDER_TREATMENT: "Em Tratamento",
-  FINISHED: "Concluída",
-  CLASSIFIED: "Classificada",
-};
 
-const NC_OPEN_STATUSES: NonConformityStatus[] = ["OPEN", "UNDER_TREATMENT"];
+
 
 /* -------------------------------------------------------------------------- */
 /*                                  MOCK DATA                                 */
@@ -127,6 +125,7 @@ export default function ManagementReviewPage() {
 
   const [selectedYearId, setSelectedYearId] = useState<number | null>(null);
   const [logOpen, setLogOpen] = useState(false);
+  const [presentationOpen, setPresentationOpen] = useState(false);
 
   const [expandedProcesses, setExpandedProcesses] = useState<number[]>([]);
 
@@ -234,62 +233,19 @@ export default function ManagementReviewPage() {
     return data?.years?.find((year) => year.yearId === selectedYearId)?.year;
   }, [data?.years, selectedYearId]);
 
+  // Ano civil do ciclo selecionado, independente de já existir um registo
+  // ManagementReviewYear (só é criado ao anexar o 1º documento) — necessário
+  // para a apresentação poder ser gerada mesmo em ciclos ainda "vazios".
+  const { data: allYears } = useQuery({ queryKey: ["years"], queryFn: getYears });
+  const presentationYear = allYears?.find((y) => y.id === selectedYearId)?.year;
+
   const attentionCount =
     (summary?.overview.processesWithoutResponsible ?? 0) +
     (summary?.overview.indicatorsWithoutMeasurements ?? 0) +
     (summary?.overview.objectivesInProgress ?? 0) +
     (summary?.overview.nonConformitiesOpen ?? 0);
 
-  const attentionItems: {
-    id: string;
-    type: string;
-    title: string;
-    description: string;
-  }[] = [];
-
-  summary?.processes.forEach((process) => {
-    if (process.responsibles.length === 0) {
-      attentionItems.push({
-        id: `process-${process.processYearId}`,
-        type: "Processo",
-        title: process.name,
-        description: "Processo sem responsável definido.",
-      });
-    }
-
-    process.indicators.forEach((indicator) => {
-      if (!indicator.hasMeasurements) {
-        attentionItems.push({
-          id: `indicator-${indicator.indicatorYearId}`,
-          type: "Indicador",
-          title: indicator.name,
-          description: `Sem medições no processo ${process.name}.`,
-        });
-      }
-    });
-  });
-
-  summary?.objectives.forEach((objective) => {
-    if (objective.status === "IN_PROGRESS") {
-      attentionItems.push({
-        id: `objective-${objective.qualityObjectiveYearId}`,
-        type: "Objetivo",
-        title: objective.name,
-        description: "Objetivo ainda em curso.",
-      });
-    }
-  });
-
-  summary?.nonConformities.forEach((nonConformity) => {
-    if (NC_OPEN_STATUSES.includes(nonConformity.status)) {
-      attentionItems.push({
-        id: `non-conformity-${nonConformity.nonConformityYearId}`,
-        type: "Não conformidade",
-        title: nonConformity.name,
-        description: `Estado: ${NC_STATUS_LABELS[nonConformity.status]}.`,
-      });
-    }
-  });
+  const attentionItems = useMemo(() => buildAttentionItems(summary), [summary]);
   const documents = yearDetail?.documents ?? [];
 
   /* ---------------------------------------------------------------------- */
@@ -362,6 +318,13 @@ export default function ManagementReviewPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          {selectedYearId !== null && presentationYear !== undefined && (
+            <Button variant="outline" size="sm" onClick={() => setPresentationOpen(true)}>
+              <Presentation className="size-4" />
+              Ver Resumo
+            </Button>
+          )}
+
           <button
             onClick={() => setLogOpen(true)}
             className="p-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all cursor-pointer"
@@ -1161,6 +1124,14 @@ export default function ManagementReviewPage() {
         yearId={selectedYearId ?? undefined}
         title="Histórico — Revisão pela Gestão"
       />
+
+      {presentationOpen && selectedYearId !== null && presentationYear !== undefined && (
+        <ManagementReviewPresentation
+          yearId={selectedYearId}
+          year={presentationYear}
+          onClose={() => setPresentationOpen(false)}
+        />
+      )}
 
       {/* ------------------------------------------------------------------ */}
       {/* UPLOAD DIALOG                                                      */}

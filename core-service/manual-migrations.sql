@@ -34,3 +34,10 @@ ALTER TABLE logs DROP CONSTRAINT IF EXISTS logs_entity_type_check;
 -- sem isto criar uma avaliação falha. Não apaga nenhum dado.
 ALTER TABLE supplier_review ALTER COLUMN rating DROP NOT NULL;
 ALTER TABLE supplier_review ALTER COLUMN review_date DROP NOT NULL;
+
+-- Mesma família de problema que o "name" dos indicadores (linha 15): a fórmula e
+-- as notas de um indicador também podem ser texto longo (foi o caso ao importar
+-- a Matriz de Indicadores 2026 — criar um indicador com uma nota de 3 parágrafos
+-- falhava).
+ALTER TABLE indicators ALTER COLUMN formula TYPE TEXT;
+ALTER TABLE indicators ALTER COLUMN notes TYPE TEXT;
