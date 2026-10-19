@@ -1,0 +1,170 @@
+[
+ {
+  "op": "PATCH",
+  "path": "/non-conformities/1/corrective-actions/3",
+  "body": {
+   "status": "FINISHED"
+  },
+  "ref": "PAC 01: ação «4) Integrar a segurança da informação e » IN_PROGRESS→FINISHED"
+ },
+ {
+  "op": "PATCH",
+  "path": "/non-conformities/2/corrective-actions/4",
+  "body": {
+   "status": "FINISHED"
+  },
+  "ref": "PAC 02: ação «2) Otimizar o uso do sharepoint para fac» IN_PROGRESS→FINISHED"
+ },
+ {
+  "op": "PATCH",
+  "path": "/non-conformities/3",
+  "body": {
+   "effectivenessVerification": "1) Aguarda decisão da Equipa Reitoral. 2) Emails sobre as reuniões. Reuniões com 4 empresas (CEGID; QUIDGEST; OXYGENIOS; e PURE RIMS)\n\nData de conclusão: 2026-09-01T00:00:00\n\nObservações: 1) Verificou-se que o uso do planner não era viável. A Equipa Reitoral está a estudar outras possibilidades de plataformas de gestão de projetos com uso transversal a toda a Instituição (set/2026);  \n2) Vários contactos contactos e reuniões com empresas. (fev/2026);\n2.1 set/2026 - será apresentada uma proposta;\n2.2 Realizado um contrato com a empresa  OXYGENIOS para contratação de serviços na área administrativa e financeira - 28-09-2026;"
+  },
+  "ref": "PAC 03 (Excel PAC 03): eficácia/fecho/observações"
+ },
+ {
+  "op": "PATCH",
+  "path": "/non-conformities/3/years/3",
+  "body": {
+   "status": "FINISHED"
+  },
+  "ref": "PAC 03 (Excel PAC 03): ano 2026"
+ },
+ {
+  "op": "PATCH",
+  "path": "/non-conformities/3/corrective-actions/7",
+  "body": {
+   "status": "FINISHED"
+  },
+  "ref": "PAC 03: ação «2) Sensibilizar as UO/Ufs/ Ação Social  » IN_PROGRESS→FINISHED"
+ },
+ {
+  "op": "PATCH",
+  "path": "/non-conformities/3/corrective-actions/8",
+  "body": {
+   "status": "FINISHED"
+  },
+  "ref": "PAC 03: ação «3) Otimizar o uso das plataformas: GLPI,» IN_PROGRESS→FINISHED"
+ },
+ {
+  "op": "PATCH",
+  "path": "/non-conformities/4",
+  "body": {
+   "effectivenessVerification": "A intervenção no soalho da Unidade dos Recursos Humanos ficou concluída. Em relação às janelas aguarda-se um 2º orçamento para posterior arranjo das mesmas (nov/2026)\n\nData de conclusão: Transita 2026\n\nObservações: 1. Deliberação do Conselho de Gestão a autorizar a intervenção e orçamento para a realização da mesma;\n\n2. nov/2025 - pedido ponto da situação ao Sr. Administrador;\n\n3. jun026 - Devido à execução do PRR não foi possível executar esta aquisição\n\n4. set2026 - serão pedidos novos orçamentos para a execução destes arranjos;"
+  },
+  "ref": "PAC 04 (Excel PAC 04): eficácia/fecho/observações"
+ },
+ {
+  "op": "PATCH",
+  "path": "/non-conformities/4/years/3",
+  "body": {
+   "evaluation": "A intervenção no soalho da Unidade dos Recursos Humanos ficou concluída. Em relação às janelas aguarda-se um 2º orçamento para posterior arranjo das mesmas (nov/2026)"
+  },
+  "ref": "PAC 04 (Excel PAC 04): ano 2026"
+ },
+ {
+  "op": "PATCH",
+  "path": "/non-conformities/5",
+  "body": {
+   "effectivenessVerification": "Documentos transversais\n\nData de conclusão: Transita 2026\n\nObservações: set026 - Continua a padronização dos documentos específicos;\n\n jul025 + set025 + set026 - comunicação do Reitor à Academia relativo à renovação do design dos documentos gerais a adotar na UMa e criados novos modelos gerais/transversais;\n\n29-jun-2026  - processo concluído no sharepoint; \n\n27-03-2026 - foi introduzido para aprovação, no Mapa de Informação Documentada - Sharepoint, o 1º documento (Imp 02 A. PG URH 05 - Plano de Formação 2026_PTEG) para aprovação;\n\nNo dia 10/12/2025 foram feitas as últimas verificaçõesdos documentos transversais antes da auditora externa da 2ª fase.\nHouve necessidade de correção de documentos transversais e padronização dos documento específicos e, por isso, o processo que pensávamos concluído prolongou-se"
+  },
+  "ref": "PAC 05 (Excel PAC 05): eficácia/fecho/observações"
+ },
+ {
+  "op": "PATCH",
+  "path": "/non-conformities/6",
+  "body": {
+   "effectivenessVerification": "Plano de Higiene e Segurança no Trabalho\n\nData de conclusão: Transita 2026\n\nObservações: Medicina Trabalho"
+  },
+  "ref": "PAC 06 (Excel PAC 06): eficácia/fecho/observações"
+ },
+ {
+  "op": "PATCH",
+  "path": "/non-conformities/8",
+  "body": {
+   "effectivenessVerification": "Plano de Manutenção Preventiva atualizado\n\nSubmeter as medidas de autoproteção à entidade competente\n\nData de conclusão: Transita 2026\n\nObservações: set/2026 - entrada do processo de aquisição na plataforma  de compras públicas;\n\njun/2026 -  reunião de acompanhamento;\n\nmar/2026 - reunião de acompanhamento;\n\nFev/2026 - O responsável da área está a tratar da situação"
+  },
+  "ref": "PAC 08 (Excel PAC 08): eficácia/fecho/observações"
+ },
+ {
+  "op": "PATCH",
+  "path": "/non-conformities/8/years/3",
+  "body": {
+   "evaluation": "Plano de Manutenção Preventiva atualizado\n\nSubmeter as medidas de autoproteção à entidade competente"
+  },
+  "ref": "PAC 08 (Excel PAC 08): ano 2026"
+ },
+ {
+  "op": "PATCH",
+  "path": "/non-conformities/10",
+  "body": {
+   "effectivenessVerification": "Sistema HACCP (Manual HACCP\natualizado, realização de auditorias, calibração dos termómetros, outros requisitos)\n\nData de conclusão: Transita 2026\n\nObservações: 6. set/2026 - elaboração de um plano de ação corretivo\n\n5. jul/2026 - 3ª auditoria SGS;\n\n4. abril/2026 - 2ª auditoria SGS;\n\n3. jan/2026 - ação de formação HCCP;\n\n3. mar/2026 - ação de formação - calibarção;\n\n2. dez/2025 - 1ª auditoria SGS\n\n1. nov/2025 - realizado um contrato com a empresa SGS para implementação de um sistema HACCP. Fomos informados pela SGS que esta aguarda a contratação de um técnico para executar este contrato;\n\nfev/2026\nAções a decorrer com empresa SGS (formação, auditorias e atuallização do manual).\nContactos com empresas para calibração dos termómetros (LREC) e TAP e outr aempresa para calibragem dos infravermelhos."
+  },
+  "ref": "PAC 10 (Excel PAC 10): eficácia/fecho/observações"
+ },
+ {
+  "op": "PATCH",
+  "path": "/non-conformities/11",
+  "body": {
+   "effectivenessVerification": "Alteração dos indicadores\n\nData de conclusão: 2026-09-01T00:00:00\n\nObservações: Imp 22 A. PG GCQ 01 - Matriz_Indicadores_UMa"
+  },
+  "ref": "PAC 11 (Excel PAC 11): eficácia/fecho/observações"
+ },
+ {
+  "op": "PATCH",
+  "path": "/non-conformities/11/years/3",
+  "body": {
+   "status": "FINISHED"
+  },
+  "ref": "PAC 11 (Excel PAC 11): ano 2026"
+ },
+ {
+  "op": "PATCH",
+  "path": "/non-conformities/13",
+  "body": {
+   "effectivenessVerification": "Plano de manutenção de equipamentos\n\nData de conclusão: Transita 2026\n\nObservações: set/2026 - em reunião com o consultor o responsável informou que está a preparar um conjunto de documentos  relativos aos planos de manutenção e que irá enviar ao GCQ assim que possível;\n\njun/2026 - num contacto telefónico entre o GCQ e o Sr. Arqui. Ricardo Câmara, o Gabinete foi avisado que  está a ser preparado um conjunto de documentos relativo aos planos de manutenção  para entregar;"
+  },
+  "ref": "PAC 13 (Excel PAC 13): eficácia/fecho/observações"
+ },
+ {
+  "op": "PATCH",
+  "path": "/non-conformities/14",
+  "body": {
+   "effectivenessVerification": "Calibração e verificação dos equipamentos\n\nData de conclusão: Transita 2026\n\nObservações: set/2026 -validação do procedimento de RMM (CQM);\n\nago/2026 - preparação de procedimento para verificação de RMM (GCQ);\n\nmarço/2026 - formação em Metrologia (SGS)\n\nfev/2026\nAções a decorrer com empresa SGS (formação, auditorias e atuallização do manual).\nContactos com empresas para calibração dos termómetros (LREC) e TAP e outr aempresa para calibragem dos infravermelhos.\nContactos com empresas e formação prevista para março de 2026 (laboratórios)."
+  },
+  "ref": "PAC 14 (Excel PAC 14): eficácia/fecho/observações"
+ },
+ {
+  "op": "PATCH",
+  "path": "/non-conformities/15",
+  "body": {
+   "effectivenessVerification": "Cumprimento dos requisitos regulamentares aplicáveis;\nCalibração e verificação de equipamentos\n\nData de conclusão: Transita 2026\n\nObservações: set/2026 - entrada do processo de aquisição na plataforma  de compras públicas - Medidas de Auto-Proteção; (MAPS);\n\nmar/2026 - formação RGPD;\n\nfev/2026\nAções a decorrer com empresa SGS (formação, auditorias e atuallização do manual).\nContactos com empresas para calibração dos termómetros (LREC) e TAP e outr aempresa para calibragem dos infravermelhos.\nContactos com empresas e formação prevista para março de 2026 (laboratórios)."
+  },
+  "ref": "PAC 15 (Excel PAC 15): eficácia/fecho/observações"
+ },
+ {
+  "op": "PATCH",
+  "path": "/non-conformities/15/years/3",
+  "body": {
+   "evaluation": "Cumprimento dos requisitos regulamentares aplicáveis;\nCalibração e verificação de equipamentos"
+  },
+  "ref": "PAC 15 (Excel PAC 15): ano 2026"
+ },
+ {
+  "op": "PATCH",
+  "path": "/non-conformities/17",
+  "body": {
+   "effectivenessVerification": "Atualização dos documentos do SGQ\nGarantir a proteção dos documentos\n\nData de conclusão: 2026-06-29T00:00:00\n\nObservações: 29-jun-2026  - processo concluído;\n\n27-03-2026 - foi introduzido para aprovação, no Mapa de Informação Documentada - Sharepoint, o 1º documento (Imp 02 A. PG URH 05 - Plano de Formação 2026_PTEG) para aprovação;\n\nNo dia 10/12/2025 foram feitas as últimas verificaçõesdos documentos transversais antes da auditora externa da 2ª fase.\nHouve necessidade de correção de documentos transversais e padronização dos documento específicos e, por isso, o processo que pensávamos concluído prolongou-se"
+  },
+  "ref": "PAC 17 (Excel PAC 16): eficácia/fecho/observações"
+ },
+ {
+  "op": "PATCH",
+  "path": "/non-conformities/17/years/3",
+  "body": {
+   "status": "FINISHED"
+  },
+  "ref": "PAC 17 (Excel PAC 16): ano 2026"
+ }
+]
