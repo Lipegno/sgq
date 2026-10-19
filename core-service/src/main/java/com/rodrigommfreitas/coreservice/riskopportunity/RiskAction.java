@@ -18,6 +18,7 @@ public class RiskAction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(columnDefinition = "TEXT")
     private String title;
 
     @JsonIgnore
@@ -25,12 +26,13 @@ public class RiskAction {
     @JoinColumn(name = "responsible_id")
     private User responsible;
 
+    @Column(columnDefinition = "TEXT")
     private String effectivenessEvaluationMethod;
 
     @Enumerated(EnumType.STRING)
     private ActionStatus status;
 
-    @Column(length = 2000)
+    @Column(columnDefinition = "TEXT")
     private String notes;
 
     @ManyToOne
@@ -38,8 +40,12 @@ public class RiskAction {
     private RiskOpportunityYear riskOpportunityYear;
 
     // Monitoring
+    @Column(columnDefinition = "TEXT")
     private String monitoringQ1;
+    @Column(columnDefinition = "TEXT")
     private String monitoringQ2;
+    @Column(columnDefinition = "TEXT")
     private String monitoringQ3;
+    @Column(columnDefinition = "TEXT")
     private String monitoringQ4;
 }

@@ -41,3 +41,15 @@ ALTER TABLE supplier_review ALTER COLUMN review_date DROP NOT NULL;
 -- falhava).
 ALTER TABLE indicators ALTER COLUMN formula TYPE TEXT;
 ALTER TABLE indicators ALTER COLUMN notes TYPE TEXT;
+
+-- As ações de Riscos e Oportunidades passaram a ter texto longo (medidas e
+-- acompanhamento trimestral vindos do Mapa de Gestão de R&O). Com varchar(255)
+-- criar/atualizar uma ação com um título de ~300 caracteres falhava (HTTP 400).
+-- Mesma família do "name" dos indicadores. Não apaga nem altera dados.
+ALTER TABLE risk_action ALTER COLUMN title TYPE TEXT;
+ALTER TABLE risk_action ALTER COLUMN effectiveness_evaluation_method TYPE TEXT;
+ALTER TABLE risk_action ALTER COLUMN notes TYPE TEXT;
+ALTER TABLE risk_action ALTER COLUMN monitoring_q1 TYPE TEXT;
+ALTER TABLE risk_action ALTER COLUMN monitoring_q2 TYPE TEXT;
+ALTER TABLE risk_action ALTER COLUMN monitoring_q3 TYPE TEXT;
+ALTER TABLE risk_action ALTER COLUMN monitoring_q4 TYPE TEXT;
