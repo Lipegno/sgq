@@ -17,6 +17,7 @@ public class ObjectiveAction {
     @Column(name = "action_text", nullable = false, columnDefinition = "TEXT")
     private String actionText;
 
+    @Column(columnDefinition = "TEXT")
     private String deadline;
 
     @Column(columnDefinition = "TEXT")
@@ -31,16 +32,16 @@ public class ObjectiveAction {
     @Column(name = "end_date")
     private LocalDate endDate;
 
-    @Column(name = "q1_review")
+    @Column(name = "q1_review", columnDefinition = "TEXT")
     private String q1Review;
 
-    @Column(name = "q2_review")
+    @Column(name = "q2_review", columnDefinition = "TEXT")
     private String q2Review;
 
-    @Column(name = "q3_review")
+    @Column(name = "q3_review", columnDefinition = "TEXT")
     private String q3Review;
 
-    @Column(name = "final_result")
+    @Column(name = "final_result", columnDefinition = "TEXT")
     private String finalResult;
 
     @Column(name = "target_achieved")

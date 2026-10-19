@@ -53,3 +53,12 @@ ALTER TABLE risk_action ALTER COLUMN monitoring_q1 TYPE TEXT;
 ALTER TABLE risk_action ALTER COLUMN monitoring_q2 TYPE TEXT;
 ALTER TABLE risk_action ALTER COLUMN monitoring_q3 TYPE TEXT;
 ALTER TABLE risk_action ALTER COLUMN monitoring_q4 TYPE TEXT;
+
+-- Objetivos de Qualidade: o acompanhamento trimestral e o resultado final vindos
+-- do Excel (Monitorização dos Objetivos de Gestão) passam dos 255 caracteres e a
+-- gravação falhava (HTTP 400 "campo excede o tamanho máximo"). Não altera dados.
+ALTER TABLE objective_actions ALTER COLUMN deadline TYPE TEXT;
+ALTER TABLE objective_actions ALTER COLUMN q1_review TYPE TEXT;
+ALTER TABLE objective_actions ALTER COLUMN q2_review TYPE TEXT;
+ALTER TABLE objective_actions ALTER COLUMN q3_review TYPE TEXT;
+ALTER TABLE objective_actions ALTER COLUMN final_result TYPE TEXT;
