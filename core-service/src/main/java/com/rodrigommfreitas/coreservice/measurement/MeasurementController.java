@@ -2,6 +2,7 @@ package com.rodrigommfreitas.coreservice.measurement;
 
 import com.rodrigommfreitas.coreservice.measurement.dto.CreateMeasurementRequest;
 import com.rodrigommfreitas.coreservice.measurement.dto.MeasurementResponse;
+import com.rodrigommfreitas.coreservice.measurement.dto.UpdateMeasurementRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,5 +22,13 @@ public class MeasurementController {
             @RequestBody CreateMeasurementRequest request
     ) {
         return measurementService.createMeasurement(indicatorYearId, request);
+    }
+
+    @PutMapping("/{measurementId}")
+    public MeasurementResponse updateMeasurement(
+            @PathVariable Long measurementId,
+            @RequestBody UpdateMeasurementRequest request
+    ) {
+        return measurementService.updateMeasurement(measurementId, request);
     }
 }
