@@ -19,6 +19,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.rodrigommfreitas.coreservice.security.CallerRoles;
+
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -141,6 +144,9 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public List<ExternalUserResponse> getExternalUsersByYearId(Long yearId) {
+        if (CallerRoles.isExternal()) {
+            throw new AccessDeniedException("Sem permissão para listar utilizadores externos.");
+        }
         List<UserYearAccess> accesses = userYearAccessRepository.findByYearId(yearId);
         return accesses.stream()
                 .filter(a -> a.getUser().getRoles().contains(Role.ROLE_EXTERNAL))
@@ -160,7 +166,8 @@ public class UserService {
     @Transactional(readOnly = true)
     public List<UserDto> getAllUsers() {
         return userRepository.findAll().stream()
-                .map(this::toDto)
+                .filter(this::visibleToCaller)
+                .map(this::dtoForCaller)
                 .toList();
     }
 
@@ -168,13 +175,17 @@ public class UserService {
     public UserDto getUserById(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found with id " + id));
-        return toDto(user);
+        if (!visibleToCaller(user)) {
+            throw new AccessDeniedException("Sem permissão para consultar este utilizador.");
+        }
+        return dtoForCaller(user);
     }
 
     @Transactional(readOnly = true)
     public List<UserDto> getUsersByIds(List<Long> ids) {
         return userRepository.findAllById(ids).stream()
-                .map(this::toDto)
+                .filter(this::visibleToCaller)
+                .map(this::dtoForCaller)
                 .toList();
     }
 
@@ -188,9 +199,15 @@ public class UserService {
 
     @Transactional
     public UserManagementDto updateRoles(Long userId, Set<Role> roles) {
+        // Defesa em profundidade: o endpoint já exige SUPERADMIN, mas quem atribui
+        // papéis nunca pode ser decidido só pela camada web (um utilizador comum
+        // podia tornar-se SUPERADMIN com um único pedido).
+        if (!CallerRoles.isSuperAdmin()) {
+            throw new AccessDeniedException("Apenas um Super Administrador pode alterar papéis.");
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with id " + userId));
-        user.setRoles(roles);
 
         if (user.getEmail().equalsIgnoreCase(bootstrapAdminEmail)
                 && !roles.contains(Role.ROLE_SUPERADMIN)) {
@@ -199,9 +216,46 @@ public class UserService {
             );
         }
 
+        user.setRoles(roles);
 
         userRepository.save(user);
         return new UserManagementDto(user.getId(), user.getFirstName(), user.getLastName(), user.getEmail(), user.getRoles());
+    }
+
+    /**
+     * Um externo só vê utilizadores internos (e a si próprio) — nunca as contas de
+     * outros auditores externos.
+     */
+    private boolean visibleToCaller(User user) {
+        if (!CallerRoles.isExternal()) return true;
+        boolean isSelf = user.getId().equals(UserContextHolder.getUserId());
+        return isSelf || user.getRoles().stream().noneMatch(r -> r == Role.ROLE_EXTERNAL);
+    }
+
+    /** Para um externo, os outros utilizadores aparecem só com o nome (sem email nem papéis). */
+    private UserDto dtoForCaller(User user) {
+        boolean isSelf = user.getId().equals(UserContextHolder.getUserId());
+        if (CallerRoles.isExternal() && !isSelf) {
+            return new UserDto(user.getId(), user.getFirstName(), user.getLastName(), "", Set.of());
+        }
+        return toDto(user);
+    }
+
+    /**
+     * Para recursos que existem em vários anos (ex.: um equipamento): um externo
+     * pode ver se tiver acesso a pelo menos um desses anos.
+     */
+    public void validateAnyYearAccess(Collection<Long> yearIds) {
+        if (!CallerRoles.isExternal()) return;
+        for (Long yearId : yearIds) {
+            try {
+                validateYearAccess(yearId);
+                return;
+            } catch (AccessDeniedException ignored) {
+                // tenta o seguinte
+            }
+        }
+        throw new AccessDeniedException("Acesso negado.");
     }
 
     private UserDto toDto(User user) {

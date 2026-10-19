@@ -577,6 +577,8 @@ public class NonConformityService {
                 nc.getOrigin(),
                 nc.getAudit() != null ? nc.getAudit().getId() : null,
                 nc.getAudit() != null ? nc.getAudit().getName() : null,
+                // ano da auditoria: a NC pode estar noutro ano, e o link tem de abrir a auditoria certa
+                nc.getAudit() != null && nc.getAudit().getYear() != null ? nc.getAudit().getYear().getId() : null,
                 years,
                 actions,
                 nc.getWhatWillBeDone(),

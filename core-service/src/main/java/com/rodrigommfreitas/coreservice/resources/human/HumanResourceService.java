@@ -33,6 +33,7 @@ import java.util.*;
 public class HumanResourceService {
 
     private final HumanResourceRepository repository;
+    private final com.rodrigommfreitas.coreservice.user.UserService userService;
     private final HumanResourceYearRepository yearRepository;
     private final YearRepository yearRepo;
     private final DocumentService documentService;
@@ -351,6 +352,7 @@ hr.getName() + " — " + String.valueOf(year.getYear()),
 
         HumanResourceYear hry = yearRepository.findById(humanResourceYearId)
                 .orElseThrow(() -> new RuntimeException("HumanResourceYear not found"));
+        userService.validateYearAccess(hry.getYear().getId());
 
         var processes = processYearRepository
                 .findByResponsiblesId(hry.getId())

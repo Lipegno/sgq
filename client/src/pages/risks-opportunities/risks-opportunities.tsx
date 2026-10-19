@@ -1,3 +1,5 @@
+import { EntityLink } from "@/components/entity-link";
+import { useYearAndOpen } from "@/hooks/use-year-and-open";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -143,7 +145,7 @@ export default function RisksOpportunitiesPage() {
   const queryClient = useQueryClient();
   const { isExternal, user } = useAuth();
 
-  const [selectedYearId, setSelectedYearId] = useState<number | null>(null);
+  const { yearId: selectedYearId, setYearId: setSelectedYearId, openId, clearOpen } = useYearAndOpen();
   const [activeTab, setActiveTab] = useState<RiskOpportunityType>("RISK");
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "matrix">("list");
@@ -392,6 +394,19 @@ export default function RisksOpportunitiesPage() {
     setFormDecision(item.decision);
     setEditOpen(true);
   }
+
+  // Chegada por um link (ex.: do detalhe de um processo): abre este registo.
+  useEffect(() => {
+    if (openId === null || !grouped) return;
+    const target = [...(grouped.risks ?? []), ...(grouped.opportunities ?? [])]
+      .find((r) => r.riskOpportunityYearId === openId);
+    if (!target) return;
+    setActiveTab(target.type);
+    setSearchQuery("");
+    openEdit(target);
+    clearOpen();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openId, grouped]);
 
   function handleSubmit() {
     if (!formDescription.trim() || !effectiveYearId) return;
@@ -698,7 +713,7 @@ export default function RisksOpportunitiesPage() {
                         className="flex items-center justify-between text-sm bg-card border border-border px-3 py-2 rounded-lg"
                       >
                         <div className="flex flex-col">
-                          <span className="font-semibold text-foreground">{proc.processName}</span>
+                          <EntityLink entity="process" id={proc.processYearId} yearId={effectiveYearId} onNavigate={() => { setEditOpen(false); setEditItem(null); }} className="font-semibold text-foreground hover:text-primary">{proc.processName}</EntityLink>
                           {proc.macroProcessName && (
                             <span className="text-xs text-muted-foreground">{proc.macroProcessName}</span>
                           )}

@@ -1,3 +1,4 @@
+import { EntityLink } from "@/components/entity-link";
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -89,13 +90,23 @@ const valueTypeShort: Record<string, string> = {
 interface IndicatorItemProps {
   indicator: IndicatorWithProcesses;
   yearId: number;
+  /** Abrir o detalhe ao chegar por um link (ver hooks/use-year-and-open). */
+  autoOpen?: boolean;
+  onAutoOpened?: () => void;
 }
 
-export const IndicatorItem: React.FC<IndicatorItemProps> = ({ indicator, yearId }) => {
+export const IndicatorItem: React.FC<IndicatorItemProps> = ({ indicator, yearId, autoOpen = false, onAutoOpened }) => {
   const queryClient = useQueryClient();
   const { isExternal } = useAuth();
   const menuRef = useRef<HTMLDivElement>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+
+  useEffect(() => {
+    if (autoOpen) {
+      setDetailOpen(true);
+      onAutoOpened?.();
+    }
+  }, [autoOpen, onAutoOpened]);
   const [isEditing, setIsEditing] = useState(false);
   const [processOpen, setProcessOpen] = useState(false);
   const [measurementFormOpen, setMeasurementFormOpen] = useState(false);
@@ -549,7 +560,16 @@ const { data: humanResources } = useQuery({
                   )}
                   <div>
                     <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Responsável</div>
-                    <span className="text-sm font-medium">{displayName}</span>
+                    <span className="text-sm font-medium">
+                      <EntityLink
+                        entity="person"
+                        id={indicator.responsible?.humanResourceYearId}
+                        yearId={yearId}
+                        onNavigate={() => setDetailOpen(false)}
+                      >
+                        {displayName}
+                      </EntityLink>
+                    </span>
                   </div>
                   {indicator.goal != null && (
                     <div>
@@ -590,7 +610,7 @@ const { data: humanResources } = useQuery({
                       className="flex items-center justify-between text-sm bg-card border border-border px-3 py-2 rounded-lg shadow-sm"
                     >
                       <div className="flex flex-col min-w-0">
-                        <span className="font-semibold text-foreground truncate">{proc.processName}</span>
+                        <EntityLink entity="process" id={proc.processYearId} yearId={yearId} onNavigate={() => setDetailOpen(false)} className="font-semibold text-foreground hover:text-primary">{proc.processName}</EntityLink>
                         {proc.macroProcessName && (
                           <span className="text-xs text-muted-foreground uppercase truncate">{proc.macroProcessName}</span>
                         )}

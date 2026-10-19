@@ -434,6 +434,8 @@ public class ManagementReviewService {
                 actionSummaries.add(new ManagementReviewSummaryResponse.ActionSummary(
                         "Objetivo da Qualidade",
                         qoy.getQualityObjective().getObjectiveTitle(),
+                        "OBJECTIVE",
+                        qoy.getId(),
                         action.getId(),
                         action.getActionText(),
                         resolveUserName(action.getResponsibleId()),
@@ -448,6 +450,8 @@ public class ManagementReviewService {
                 actionSummaries.add(new ManagementReviewSummaryResponse.ActionSummary(
                         "Não Conformidade",
                         ncy.getNonConformity().getName(),
+                        "NON_CONFORMITY",
+                        ncy.getNonConformity().getId(),
                         action.getId(),
                         action.getName(),
                         userDisplayName(action.getResponsible()),
@@ -462,6 +466,8 @@ public class ManagementReviewService {
                 actionSummaries.add(new ManagementReviewSummaryResponse.ActionSummary(
                         "Oportunidade de Melhoria",
                         ioy.getImprovementOpportunity().getName(),
+                        "IMPROVEMENT_OPPORTUNITY",
+                        ioy.getImprovementOpportunity().getId(),
                         action.getId(),
                         action.getName(),
                         userDisplayName(action.getResponsible()),
@@ -476,6 +482,8 @@ public class ManagementReviewService {
                 actionSummaries.add(new ManagementReviewSummaryResponse.ActionSummary(
                         "Risco / Oportunidade",
                         roy.getRiskOpportunity().getDescription(),
+                        "RISK_OPPORTUNITY",
+                        roy.getId(),
                         action.getId(),
                         action.getTitle(),
                         userDisplayName(action.getResponsible()),

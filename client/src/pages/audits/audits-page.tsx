@@ -1,3 +1,5 @@
+import { EntityLink } from "@/components/entity-link";
+import { useYearAndOpen } from "@/hooks/use-year-and-open";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -120,7 +122,7 @@ export default function AuditsPage() {
   const queryClient = useQueryClient();
   const { isExternal } = useAuth();
 
-  const [selectedYearId, setSelectedYearId] = useState<number | null>(null);
+  const { yearId: selectedYearId, setYearId: setSelectedYearId, openId, clearOpen } = useYearAndOpen();
   const [pageLogOpen, setPageLogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortMode, setSortMode] = useState<"asc" | "desc">("desc");
@@ -266,6 +268,17 @@ export default function AuditsPage() {
     setExtYearIds([]);
     setEditOpen(true);
   }
+
+  // Chegada por um link (ex.: da NC que a auditoria originou): abre esta auditoria.
+  useEffect(() => {
+    if (openId === null || !audits) return;
+    const target = audits.find((a) => a.id === openId);
+    if (!target) return;
+    setSearchQuery("");
+    openEdit(target);
+    clearOpen();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openId, audits]);
 
   function openEdit(item: AuditResponse) {
     setEditItem(item);
@@ -741,7 +754,7 @@ export default function AuditsPage() {
                           key={nc.id}
                           className="flex items-center justify-between text-sm bg-card border border-border px-3 py-2 rounded-lg shadow-sm"
                         >
-                          <span className="font-semibold text-foreground truncate">{nc.name}</span>
+                          <EntityLink entity="nonConformity" id={nc.id} yearId={nc.years.find((y) => y.yearId === editItem.yearId)?.yearId ?? nc.years[0]?.yearId} onNavigate={() => { setEditOpen(false); setEditItem(null); }} className="font-semibold text-foreground hover:text-primary">{nc.name}</EntityLink>
                           {status && (
                             <Badge variant="outline" className="shrink-0 ml-2">
                               {NC_STATUS_LABELS[status]}

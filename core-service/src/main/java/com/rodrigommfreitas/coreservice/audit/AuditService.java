@@ -30,6 +30,7 @@ import java.util.*;
 public class AuditService {
 
     private final AuditRepository auditRepository;
+    private final com.rodrigommfreitas.coreservice.user.UserService userService;
     private final YearRepository yearRepository;
     private final UserRepository userRepository;
     private final UserReferenceService userRefService;
@@ -38,6 +39,14 @@ public class AuditService {
     private final DocumentService documentService;
     private final LogService logService;
     private final LogDetailsBuilder logDetailsBuilder;
+
+    /** Para endpoints por id da auditoria: um externo só acede se a auditoria for de um ano que lhe foi atribuído. */
+    @Transactional(readOnly = true)
+    public void assertAccessible(Long auditId) {
+        Audit audit = auditRepository.findById(auditId)
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Audit not found with id " + auditId));
+        userService.validateYearAccess(audit.getYear().getId());
+    }
 
     @Transactional
     public AuditResponse create(CreateAuditRequest request) {

@@ -53,6 +53,15 @@ import {
 import type { NonConformityOrigin } from "@/types.ts";
 import { buildAttentionItems, NC_OPEN_STATUSES, NC_STATUS_LABELS } from "./management-review-attention";
 import { ManagementReviewPresentation } from "./management-review-presentation";
+import { EntityLink } from "@/components/entity-link";
+import type { LinkableEntity } from "@/lib/entity-links";
+
+const ACTION_ORIGIN_ENTITY: Record<string, LinkableEntity> = {
+  OBJECTIVE: "objective",
+  NON_CONFORMITY: "nonConformity",
+  IMPROVEMENT_OPPORTUNITY: "improvementOpportunity",
+  RISK_OPPORTUNITY: "risk",
+};
 
 /* -------------------------------------------------------------------------- */
 /*                       NÃO CONFORMIDADES — LABELS                           */
@@ -536,6 +545,14 @@ export default function ManagementReviewPage() {
                     {expanded && (
                       <div className="px-5 pb-5 border-t border-border bg-muted/20">
                         <div className="pt-4 space-y-3">
+                          <EntityLink
+                            entity="process"
+                            id={process.processYearId}
+                            yearId={selectedYearId}
+                            className="inline-block text-sm font-medium"
+                          >
+                            Abrir processo
+                          </EntityLink>
                           {process.indicators.length === 0 ? (
                             <div className="text-sm text-muted-foreground">
                               Este processo não possui indicadores associados.
@@ -548,7 +565,13 @@ export default function ManagementReviewPage() {
                               >
                                 <div>
                                   <p className="text-sm font-semibold">
-                                    {indicator.name}
+                                    <EntityLink
+                                      entity="indicator"
+                                      id={indicator.indicatorYearId}
+                                      yearId={selectedYearId}
+                                    >
+                                      {indicator.name}
+                                    </EntityLink>
                                   </p>
 
                                   <p className="text-sm text-muted-foreground mt-1">
@@ -625,7 +648,13 @@ export default function ManagementReviewPage() {
 
                     <div>
                       <p className="font-semibold text-foreground">
-                        {objective.name}
+                        <EntityLink
+                          entity="objective"
+                          id={objective.qualityObjectiveYearId}
+                          yearId={selectedYearId}
+                        >
+                          {objective.name}
+                        </EntityLink>
                       </p>
 
                       <p className="text-sm text-muted-foreground mt-1">
@@ -691,7 +720,13 @@ export default function ManagementReviewPage() {
 
                         <div>
                           <p className="font-semibold text-foreground">
-                            {nonConformity.name}
+                            <EntityLink
+                              entity="nonConformity"
+                              id={nonConformity.nonConformityId}
+                              yearId={selectedYearId}
+                            >
+                              {nonConformity.name}
+                            </EntityLink>
                           </p>
 
                           <p className="text-sm text-muted-foreground mt-1">
@@ -744,7 +779,13 @@ export default function ManagementReviewPage() {
                           </p>
 
                           <h3 className="font-semibold text-foreground">
-                            {item.title}
+                            <EntityLink
+                              entity={item.entity}
+                              id={item.entityId}
+                              yearId={selectedYearId}
+                            >
+                              {item.title}
+                            </EntityLink>
                           </h3>
 
                           <p className="text-sm text-muted-foreground mt-2">
@@ -786,9 +827,14 @@ export default function ManagementReviewPage() {
 
                         <p className="text-sm text-muted-foreground mt-2">
                           {action.origin}:{" "}
-                          <span className="text-foreground">
+                          <EntityLink
+                            entity={ACTION_ORIGIN_ENTITY[action.originEntity] ?? "nonConformity"}
+                            id={action.originId}
+                            yearId={selectedYearId}
+                            className="text-foreground hover:text-primary"
+                          >
                             {action.originName}
-                          </span>
+                          </EntityLink>
                         </p>
                       </div>
 

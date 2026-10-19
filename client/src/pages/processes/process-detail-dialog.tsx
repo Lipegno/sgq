@@ -1,3 +1,4 @@
+import { EntityLink } from "@/components/entity-link";
 import { useState, useRef, useMemo, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -720,7 +721,15 @@ const removeEditorMutation = useMutation({
         >
           <div className="flex flex-col">
             <span className="font-semibold text-slate-800">
-              {r.name}
+              <EntityLink
+                entity="person"
+                id={r.humanResourceYearId}
+                yearId={yearId}
+                onNavigate={() => onOpenChange(false)}
+                className="text-slate-800 hover:text-primary"
+              >
+                {r.name}
+              </EntityLink>
             </span>
 
             {(r.function || r.department) && (
@@ -935,7 +944,7 @@ const removeEditorMutation = useMutation({
               {process.indicators.length > 0 ? process.indicators.map((indicator) => (
                 <div key={indicator.indicatorId} className="flex items-center justify-between text-sm bg-white border border-slate-200 px-3 py-2 rounded shadow-sm">
                   <div className="flex flex-col">
-                    <span className="font-semibold text-slate-800">{indicator.name}</span>
+                    <EntityLink entity="indicator" id={indicator.indicatorYearId} yearId={yearId} onNavigate={() => onOpenChange(false)} className="font-semibold text-slate-800 hover:text-primary">{indicator.name}</EntityLink>
                     <span className="text-xs text-slate-400">{indicator.formula}</span>
                   </div>
                   {indicator.goal !== null && indicator.goal !== undefined && (
@@ -960,7 +969,7 @@ const removeEditorMutation = useMutation({
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
               {relatedQualityObjectives.length > 0 ? relatedQualityObjectives.map((qo: QualityObjectiveResponse) => (
                 <div key={qo.id} className="flex items-center justify-between text-sm bg-white border border-slate-200 px-3 py-2 rounded shadow-sm">
-                  <span className="font-semibold text-slate-800">{qo.objectiveTitle}</span>
+                  <EntityLink entity="objective" id={qo.qualityObjectiveYearId} yearId={yearId} onNavigate={() => onOpenChange(false)} className="font-semibold text-slate-800 hover:text-primary">{qo.objectiveTitle}</EntityLink>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${qo.status === "ACHIEVED" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300" : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300"}`}>
                     {qo.status === "ACHIEVED" ? "Alcançado" : "Em Progresso"}
                   </span>
@@ -985,13 +994,13 @@ const removeEditorMutation = useMutation({
                 <>
                   {relatedRisks.map((r: any) => (
                     <div key={r.id} className="flex items-center justify-between text-sm bg-white border border-slate-200 px-3 py-2 rounded shadow-sm">
-                      <span className="font-semibold text-slate-800">{r.code} — {r.description}</span>
+                      <EntityLink entity="risk" id={r.riskOpportunityYearId} yearId={yearId} onNavigate={() => onOpenChange(false)} className="font-semibold text-slate-800 hover:text-primary">{r.code} — {r.description}</EntityLink>
                       <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 font-medium">Risco</span>
                     </div>
                   ))}
                   {relatedOpportunities.map((o: any) => (
                     <div key={o.id} className="flex items-center justify-between text-sm bg-white border border-slate-200 px-3 py-2 rounded shadow-sm">
-                      <span className="font-semibold text-slate-800">{o.code} — {o.description}</span>
+                      <EntityLink entity="risk" id={o.riskOpportunityYearId} yearId={yearId} onNavigate={() => onOpenChange(false)} className="font-semibold text-slate-800 hover:text-primary">{o.code} — {o.description}</EntityLink>
                       <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-medium">Oportunidade</span>
                     </div>
                   ))}
@@ -1014,7 +1023,7 @@ const removeEditorMutation = useMutation({
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
               {relatedInterestedParties.length > 0 ? relatedInterestedParties.map((ip: InterestedPartyResponse) => (
                 <div key={ip.id} className="flex items-center justify-between text-sm bg-white border border-slate-200 px-3 py-2 rounded shadow-sm">
-                  <span className="font-semibold text-slate-800">{ip.name}</span>
+                  <EntityLink entity="interestedParty" id={ip.interestedPartyYearId} yearId={yearId} onNavigate={() => onOpenChange(false)} className="font-semibold text-slate-800 hover:text-primary">{ip.name}</EntityLink>
                   <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 font-medium">
                     {ip.type === "INTERNAL" ? "Interna" : "Externa"}
                   </span>

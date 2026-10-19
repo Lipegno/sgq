@@ -13,10 +13,11 @@ import type { EntityType, DepartmentResponse, YearResponse } from "@/types";
 import { useAuth } from "@/context/auth-context";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MacroProcessDiagramCard } from "./macro-process-diagram-card";
+import { useYearAndOpen } from "@/hooks/use-year-and-open";
 
 export default function ProcessesPage() {
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
-  const [yearId, setYearId] = useState<number | null>(null);
+  const { yearId, setYearId, openId, clearOpen } = useYearAndOpen();
   const [pageLogOpen, setPageLogOpen] = useState(false);
   const [departmentFilter, setDepartmentFilter] = useState<string>("all");
   const { isExternal } = useAuth();
@@ -62,6 +63,11 @@ export default function ProcessesPage() {
       standaloneProcesses: filterProcesses(data.standaloneProcesses),
     };
   }, [data, departmentFilter]);
+
+  // Um link para um processo não pode ficar escondido por um filtro antigo.
+  useEffect(() => {
+    if (openId !== null) setDepartmentFilter("all");
+  }, [openId]);
 
   const toggleSection = (id: string) => {
     setCollapsedSections((prev) => ({
@@ -169,7 +175,7 @@ export default function ProcessesPage() {
           >
             <div className="space-y-4 py-2">
               {filteredData.standaloneProcesses.map((process) => (
-                <ProcessItem process={process} key={process.processYearId} macroProcessId={0} isExternal={isExternal} yearId={selectedYearId} />
+                <ProcessItem process={process} key={process.processYearId} macroProcessId={0} isExternal={isExternal} yearId={selectedYearId} autoOpen={openId === process.processYearId} onAutoOpened={clearOpen} />
               ))}
             </div>
           </div>
@@ -201,7 +207,7 @@ export default function ProcessesPage() {
             >
               <div className="space-y-4 py-2">
                 {macro.processes.map((process) => (
-                  <ProcessItem process={process} key={process.processYearId} macroProcessId={macro.macroProcessYearId} isExternal={isExternal} yearId={selectedYearId} />
+                  <ProcessItem process={process} key={process.processYearId} macroProcessId={macro.macroProcessYearId} isExternal={isExternal} yearId={selectedYearId} autoOpen={openId === process.processYearId} onAutoOpened={clearOpen} />
                 ))}
               </div>
             </div>

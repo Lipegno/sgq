@@ -180,7 +180,8 @@ public class DepartmentService {
         return userDepartmentRepository.findByDepartmentId(departmentId).stream()
                 .map(ud -> {
                     User u = ud.getUser();
-                    return new UserSummary(u.getId(), u.getFirstName(), u.getLastName(), u.getEmail());
+                    return new UserSummary(u.getId(), u.getFirstName(), u.getLastName(),
+                            com.rodrigommfreitas.coreservice.security.CallerRoles.isExternal() ? "" : u.getEmail());
                 })
                 .toList();
     }

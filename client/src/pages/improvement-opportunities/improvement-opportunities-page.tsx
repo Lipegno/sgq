@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/auth-context";
+import { useYearAndOpen } from "@/hooks/use-year-and-open";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -168,7 +169,7 @@ export default function ImprovementOpportunitiesPage() {
   const queryClient = useQueryClient();
   const { user, isExternal } = useAuth();
 
-  const [selectedYearId, setSelectedYearId] = useState<number | null>(null);
+  const { yearId: selectedYearId, setYearId: setSelectedYearId, openId, clearOpen } = useYearAndOpen();
   const [selectedIO, setSelectedIO] = useState<ImprovementOpportunityResponse | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("ALL");
@@ -251,6 +252,14 @@ export default function ImprovementOpportunitiesPage() {
     queryFn: () => getImprovementOpportunitiesByYear(effectiveYearId!),
     enabled: effectiveYearId !== null,
   });
+
+  /* Chegou por uma ligação (?abrir=<id>): abre o detalhe dessa oportunidade. */
+  useEffect(() => {
+    if (openId === null || !improvementOpportunities) return;
+    const target = improvementOpportunities.find((io) => io.id === openId);
+    if (target) setSelectedIO(target);
+    clearOpen();
+  }, [openId, improvementOpportunities, clearOpen]);
 
   /* Close actions menu when clicking outside */
   useEffect(() => {

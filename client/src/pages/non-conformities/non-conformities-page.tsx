@@ -1,3 +1,5 @@
+import { EntityLink } from "@/components/entity-link";
+import { useYearAndOpen } from "@/hooks/use-year-and-open";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/auth-context";
@@ -165,7 +167,7 @@ export default function NonConformitiesPage() {
   const queryClient = useQueryClient();
   const { user, isExternal } = useAuth();
 
-  const [selectedYearId, setSelectedYearId] = useState<number | null>(null);
+  const { yearId: selectedYearId, setYearId: setSelectedYearId, openId, clearOpen } = useYearAndOpen();
   const [selectedNC, setSelectedNC] = useState<NonConformityResponse | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("ALL");
@@ -405,6 +407,19 @@ const [addVerificationResponsible, setAddVerificationResponsible] = useState("")
     },
     onError: () => toast.error("Erro ao eliminar documento."),
   });
+
+  // Chegada por um link (ex.: da auditoria que originou a NC): abre esta NC.
+  useEffect(() => {
+    if (openId === null || !nonConformities) return;
+    const target = nonConformities.find((nc) => nc.id === openId);
+    if (!target) return;
+    setSearch("");
+    setStatusFilter("ALL");
+    setDepartmentFilter(null);
+    setSelectedNC(target);
+    clearOpen();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openId, nonConformities]);
 
   function resetAddForm() {
     setAddName("");
@@ -825,7 +840,7 @@ const [addVerificationResponsible, setAddVerificationResponsible] = useState("")
                       <ShieldCheck size={14} className="text-muted-foreground" />
                       <span className="text-sm">
                         <span className="text-muted-foreground">Auditoria de origem: </span>
-                        <span className="font-medium text-foreground">{selectedNC.auditName}</span>
+                        <EntityLink entity="audit" id={selectedNC.auditId} yearId={selectedNC.auditYearId} className="font-medium text-foreground hover:text-primary">{selectedNC.auditName}</EntityLink>
                       </span>
                     </div>
                   )}

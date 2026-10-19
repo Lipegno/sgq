@@ -62,6 +62,8 @@ import YearAssociationDialog from "@/components/year-association-dialog";
 import ConfirmDialog from "@/components/confirm-dialog";
 import { LogDialog } from "@/components/log-dialog";
 import { useAuth } from "@/context/auth-context";
+import { useYearAndOpen } from "@/hooks/use-year-and-open";
+import { EntityLink } from "@/components/entity-link";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getDepartments } from "@/api/core";
 import type {
@@ -123,8 +125,10 @@ function DueBadge({ dueDate }: { dueDate: string | null }) {
 
 function HumanResourceResponsibilities({
   humanResourceYearId,
+  yearId,
 }: {
   humanResourceYearId: number;
+  yearId: number | null;
 }) {
   const { data, isLoading } = useQuery({
     queryKey: ["human-resource-responsibilities", humanResourceYearId],
@@ -168,7 +172,9 @@ function HumanResourceResponsibilities({
                     key={process.processYearId}
                     className="inline-flex items-center px-2 py-1 bg-primary/5 text-primary rounded-lg text-[10px] font-medium"
                   >
-                    {process.name}
+                    <EntityLink entity="process" id={process.processYearId} yearId={yearId}>
+                      {process.name}
+                    </EntityLink>
                   </span>
                 ))}
               </div>
@@ -187,7 +193,9 @@ function HumanResourceResponsibilities({
                     key={indicator.indicatorYearId}
                     className="inline-flex items-center px-2 py-1 bg-primary/5 text-primary rounded-lg text-[10px] font-medium"
                   >
-                    {indicator.name}
+                    <EntityLink entity="indicator" id={indicator.indicatorYearId} yearId={yearId}>
+                      {indicator.name}
+                    </EntityLink>
                   </span>
                 ))}
               </div>
@@ -204,7 +212,8 @@ export default function ResourcesPage() {
   const { isExternal } = useAuth();
 
   const [activeTab, setActiveTab] = useState<ResourceTab>("pessoas");
-  const [selectedYearId, setSelectedYearId] = useState<number | null>(null);
+  const { yearId: selectedYearId, setYearId: setSelectedYearId, openId, clearOpen } = useYearAndOpen();
+  const [highlightedHryId, setHighlightedHryId] = useState<number | null>(null);
 
   const departmentsQuery = useQuery({
     queryKey: ["departments"],
@@ -313,6 +322,27 @@ export default function ResourcesPage() {
     enabled: effectiveYearId !== null,
   });
 
+  /* Chegou por uma ligação (?abrir=<hryId>): mostra a pessoa, desloca-se até ao seu cartão e destaca-o. */
+  useEffect(() => {
+    if (openId === null || !people) return;
+    setActiveTab("pessoas");
+    setSearchQuery("");
+    setHighlightedHryId(openId);
+    clearOpen();
+  }, [openId, people, clearOpen]);
+
+  useEffect(() => {
+    if (highlightedHryId === null) return;
+    const frame = requestAnimationFrame(() => {
+      document.getElementById(`person-${highlightedHryId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    const timer = setTimeout(() => setHighlightedHryId(null), 4000);
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(timer);
+    };
+  }, [highlightedHryId, people]);
+
   const filteredInfras = useMemo(() => {
     if (!infrastructures) return [];
     if (!infraSearchQuery.trim()) return infrastructures;
@@ -387,7 +417,7 @@ export default function ResourcesPage() {
       p =>
         p.name.toLowerCase().includes(q) ||
         p.function.toLowerCase().includes(q) ||
-        p.departmentName.toLowerCase().includes(q)
+        (p.departmentName ?? "").toLowerCase().includes(q)
     );
   }, [people, searchQuery]);
 
@@ -538,7 +568,7 @@ export default function ResourcesPage() {
       queryClient.invalidateQueries({ queryKey: ["equipment"] });
       toast.success("Registo de manutenção adicionado.");
       setMaintModalForEquipId(null);
-      setMaintForm({ date: "", type: "", performedBy: "", description: "" });
+      setMaintForm({ date: "", nextDueDate: null, type: "", performedBy: "", description: "" });
     },
     onError: () => toast.error("Erro ao adicionar registo de manutenção."),
   });
@@ -560,7 +590,7 @@ export default function ResourcesPage() {
       queryClient.invalidateQueries({ queryKey: ["equipment"] });
       toast.success("Registo de calibração adicionado.");
       setCalModalForEquipId(null);
-      setCalForm({ date: "", performedBy: "", result: "", description: "" });
+      setCalForm({ date: "", nextDueDate: null, performedBy: "", result: "", description: "" });
     },
     onError: () => toast.error("Erro ao adicionar registo de calibração."),
   });
@@ -891,7 +921,10 @@ export default function ResourcesPage() {
               {filteredPeople.map(person => (
                 <div
                   key={person.id}
-                  className="bg-card border border-border rounded-2xl p-6 shadow-sm hover:border-primary/20 transition-all"
+                  id={`person-${person.hryId}`}
+                  className={`bg-card border rounded-2xl p-6 shadow-sm hover:border-primary/20 transition-all ${
+                    person.hryId === highlightedHryId ? "border-primary ring-2 ring-primary/40" : "border-border"
+                  }`}
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
@@ -979,6 +1012,7 @@ export default function ResourcesPage() {
                   </div>
                   <HumanResourceResponsibilities
                     humanResourceYearId={person.hryId}
+                    yearId={effectiveYearId}
                   />
                 </div>
               ))}

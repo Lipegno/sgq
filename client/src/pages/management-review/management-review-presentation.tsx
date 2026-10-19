@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getManagementReviewSummary } from "@/api/core";
 import { buildAttentionItems } from "./management-review-attention";
+import { EntityLink } from "@/components/entity-link";
 
 const MONTHS_PT = [
   "janeiro", "fevereiro", "março", "abril", "maio", "junho",
@@ -220,7 +221,9 @@ export function ManagementReviewPresentation({
               {attentionItems.map((item) => (
                 <div key={item.id} className="text-sm border-b border-border pb-1.5">
                   <span className="font-semibold text-foreground">{item.type}: </span>
-                  <span className="text-foreground">{item.title}</span>
+                  <EntityLink entity={item.entity} id={item.entityId} yearId={yearId} onNavigate={onClose}>
+                    {item.title}
+                  </EntityLink>
                   <span className="text-muted-foreground"> — {item.description}</span>
                 </div>
               ))}

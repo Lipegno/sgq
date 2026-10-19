@@ -1,3 +1,5 @@
+import { EntityLink } from "@/components/entity-link";
+import { useYearAndOpen } from "@/hooks/use-year-and-open";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -100,7 +102,7 @@ export default function QualityObjectivesPage() {
   const queryClient = useQueryClient();
   const { isExternal } = useAuth();
 
-  const [selectedYearId, setSelectedYearId] = useState<number | null>(null);
+  const { yearId: selectedYearId, setYearId: setSelectedYearId, openId, clearOpen } = useYearAndOpen();
   const [pageLogOpen, setPageLogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortMode, setSortMode] = useState<"asc" | "desc">("desc");
@@ -296,6 +298,17 @@ export default function QualityObjectivesPage() {
 
     setEditOpen(true);
   }
+
+  // Chegada por um link (ex.: do detalhe de um processo): abre este objetivo.
+  useEffect(() => {
+    if (openId === null || !objectives) return;
+    const target = objectives.find((o) => o.qualityObjectiveYearId === openId);
+    if (!target) return;
+    setSearchQuery("");
+    openEdit(target);
+    clearOpen();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openId, objectives]);
 
   function handleSubmit() {
     if (!formTitle.trim() || !effectiveYearId) return;
@@ -532,7 +545,7 @@ export default function QualityObjectivesPage() {
                             className="flex items-center justify-between text-sm bg-card border border-border px-3 py-2 rounded-lg shadow-sm"
                           >
                             <div className="flex flex-col min-w-0">
-                              <span className="font-semibold text-foreground truncate">{proc.processName}</span>
+                              <EntityLink entity="process" id={proc.processYearId} yearId={effectiveYearId} onNavigate={() => { setEditOpen(false); setEditItem(null); }} className="font-semibold text-foreground hover:text-primary">{proc.processName}</EntityLink>
                               {proc.macroProcessName && (
                                 <span className="text-xs text-muted-foreground uppercase truncate">{proc.macroProcessName}</span>
                               )}
@@ -598,7 +611,7 @@ export default function QualityObjectivesPage() {
                             className="flex items-center justify-between text-sm bg-card border border-border px-3 py-2 rounded-lg shadow-sm"
                           >
                             <div className="flex flex-col min-w-0">
-                              <span className="font-semibold text-foreground truncate">{ind.name}</span>
+                              <EntityLink entity="indicator" id={ind.indicatorYearId} yearId={effectiveYearId} onNavigate={() => { setEditOpen(false); setEditItem(null); }} className="font-semibold text-foreground hover:text-primary">{ind.name}</EntityLink>
                               <span className="text-xs text-muted-foreground truncate">{ind.formula}</span>
                             </div>
                             {!ro && (

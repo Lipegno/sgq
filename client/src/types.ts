@@ -38,6 +38,7 @@ export interface NonConformityResponse {
   origin: NonConformityOrigin;
   auditId: number | null;
   auditName: string | null;
+  auditYearId: number | null;
   department: DepartmentResponse | null;
   years: NonConformityYearResponse[];
   correctiveActions: CorrectiveActionResponse[];
@@ -1185,6 +1186,8 @@ export interface ManagementReviewSummaryResponse {
   actions: {
     origin: string;
     originName: string;
+    originEntity: "OBJECTIVE" | "NON_CONFORMITY" | "IMPROVEMENT_OPPORTUNITY" | "RISK_OPPORTUNITY";
+    originId: number;
     actionId: number;
     title: string;
     responsible: string;

@@ -42,7 +42,13 @@ public class RefreshTokenService {
     public RefreshToken getOrCreate(com.rodrigommfreitas.coreservice.user.User user, String providedToken) {
         if (providedToken != null && !providedToken.isBlank()) {
             try {
-                return validate(providedToken);
+                RefreshToken existing = validate(providedToken);
+                // Só se reutiliza o token se for desta conta. Antes aceitava qualquer
+                // token válido: quem fizesse login como B num browser com o cookie
+                // da conta A voltava a ser A no refresh seguinte (e com os papéis de A).
+                if (existing.getUser().getId().equals(user.getId())) {
+                    return existing;
+                }
             } catch (InvalidRefreshTokenException ex) {
                 repository.findByToken(providedToken).ifPresent(repository::delete);
             }

@@ -55,6 +55,13 @@ public class DocumentController {
         DocumentVersion version = documentVersionService.findById(versionId)
                 .orElseThrow(() -> new RuntimeException("Version not found"));
 
+        // O nome guardado leva um UUID, pelo que o URL só é conhecido por quem o viu numa
+        // resposta a que teve acesso. Antes o nome do caminho era ignorado, e qualquer
+        // utilizador autenticado descarregava qualquer ficheiro só variando o versionId.
+        if (!version.getFileName().equals(fileName)) {
+            return ResponseEntity.notFound().build();
+        }
+
         Path path = fileStorage.resolve(version.getFileName());
         Resource resource;
         try {
@@ -87,6 +94,7 @@ public class DocumentController {
 
     @GetMapping("/{documentId}/with-versions")
     @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("!hasRole('EXTERNAL')")
     public DocumentWithVersionsResponse getDocumentWithVersions(
             @PathVariable Long documentId
     ) {

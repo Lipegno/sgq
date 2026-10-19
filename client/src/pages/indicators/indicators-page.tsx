@@ -32,6 +32,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/auth-context";
 import { LogDialog } from "@/components/log-dialog";
 import { YearSelector } from "@/components/year-selector";
+import { useYearAndOpen } from "@/hooks/use-year-and-open";
 import type { EntityType, IndicatorFrequency, IndicatorValueType } from "@/types";
 
 const frequencyLabels: Record<IndicatorFrequency, string> = {
@@ -75,12 +76,17 @@ export default function IndicatorsPage() {
   const { isExternal } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [yearId, setYearId] = useState<number | null>(null);
+  const { yearId, setYearId, openId, clearOpen } = useYearAndOpen();
   const [pageLogOpen, setPageLogOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState<CreateForm>(emptyForm);
 
   const selectedYearId = yearId;
+
+  // Um link para um indicador não pode ficar escondido por uma pesquisa antiga.
+  useEffect(() => {
+    if (openId !== null) setSearchQuery("");
+  }, [openId]);
 
   const { data: humanResources } = useQuery({
     queryKey: ["human-resources", selectedYearId],
@@ -211,7 +217,7 @@ export default function IndicatorsPage() {
       {!isLoading &&
         filteredIndicators &&
         filteredIndicators.map((indicator) => (
-          <IndicatorItem key={indicator.id} indicator={indicator} yearId={selectedYearId!} />
+          <IndicatorItem key={indicator.id} indicator={indicator} yearId={selectedYearId!} autoOpen={openId !== null && openId === indicator.indicatorYearId} onAutoOpened={clearOpen} />
         ))}
 
       {/* Create Dialog */}

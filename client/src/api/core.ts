@@ -1,5 +1,6 @@
 import { api } from "./axios";
 import type {
+  NonConformityResponse,
   DocumentedInformationResponse,
   UpdateDocumentedInformationRequest,
   CreateCommunicationItemRequest,
@@ -365,7 +366,7 @@ export const deleteDocument = async (documentId: number): Promise<void> => {
 };
 
 export const downloadDocumentVersion = async (versionId: number, fileName: string): Promise<void> => {
-  const res = await api.get(`/documents/versions/${versionId}/download/${fileName}`, {
+  const res = await api.get(`/documents/versions/${versionId}/download/${encodeURIComponent(fileName)}`, {
     responseType: "blob",
   });
 

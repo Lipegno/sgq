@@ -1,3 +1,5 @@
+import { EntityLink } from "@/components/entity-link";
+import { useYearAndOpen } from "@/hooks/use-year-and-open";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type {
@@ -108,7 +110,7 @@ export default function InterestedPartiesPage() {
   const queryClient = useQueryClient();
   const { user, isExternal } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [yearId, setYearId] = useState<number | null>(null);
+  const { yearId, setYearId, openId, clearOpen } = useYearAndOpen();
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -288,6 +290,18 @@ export default function InterestedPartiesPage() {
     });
     setEditOpen(true);
   };
+
+  // Chegada por um link (ex.: do detalhe de um processo): abre esta parte interessada.
+  useEffect(() => {
+    if (openId === null || !parties) return;
+    const target = parties.find((p) => p.interestedPartyYearId === openId);
+    if (!target) return;
+    setSearch("");
+    setTypeFilter("ALL");
+    handleEdit(target);
+    clearOpen();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openId, parties]);
 
   const editParty = parties?.find((p) => p.interestedPartyYearId === editId) ?? null;
 
@@ -509,6 +523,8 @@ export default function InterestedPartiesPage() {
           <div className="grid gap-4 py-4">
             <PartyFormFields form={form} setForm={setForm} processOptions={processOptions ?? []}
               readOnly={isExternal}
+              linkYearId={selectedYearId}
+              onNavigate={() => setEditOpen(false)}
               onOpenProcessDialog={() => {
               if (editParty) {
                 setOptimisticProcessIds(new Set(editParty.processes?.map((p) => p.processYearId) ?? []));
@@ -736,7 +752,15 @@ function PartyCard({
         <div className="px-4 pb-3 pt-1 border-t border-slate-100 text-xs text-slate-500 flex flex-wrap gap-x-4 gap-y-1">
           {party.processes && party.processes.length > 0 && (
             <span className="truncate">
-              Processos: {party.processes.map((p) => p.processName).join(", ")}
+              Processos:{" "}
+              {party.processes.map((p, i) => (
+                <span key={p.processYearId}>
+                  {i > 0 && ", "}
+                  <EntityLink entity="process" id={p.processYearId} yearId={party.yearId}>
+                    {p.processName}
+                  </EntityLink>
+                </span>
+              ))}
             </span>
           )}
         </div>
@@ -757,6 +781,8 @@ function PartyFormFields({
   deletePending,
   showAssociations = true,
   readOnly = false,
+  linkYearId,
+  onNavigate,
 }: {
   form: FormData;
   setForm: React.Dispatch<React.SetStateAction<FormData>>;
@@ -769,6 +795,9 @@ function PartyFormFields({
   deletePending?: boolean;
   showAssociations?: boolean;
   readOnly?: boolean;
+  /** Para os links dos processos associados (ver components/entity-link). */
+  linkYearId?: number | null;
+  onNavigate?: () => void;
 }) {
   const associatedProcesses = processOptions.filter((p) =>
     form.processYearIds.includes(p.processYearId)
@@ -900,7 +929,7 @@ function PartyFormFields({
                 className="flex items-center justify-between text-sm bg-white border border-slate-200 px-3 py-2 rounded shadow-sm"
               >
                 <div className="flex flex-col">
-                  <span className="font-semibold text-slate-800">{proc.processName}</span>
+                  <EntityLink entity="process" id={proc.processYearId} yearId={linkYearId} onNavigate={onNavigate} className="font-semibold text-slate-800 hover:text-primary">{proc.processName}</EntityLink>
                   {proc.macroProcessName && (
                     <span className="text-xs text-slate-400 uppercase">{proc.macroProcessName}</span>
                   )}

@@ -1,4 +1,5 @@
 import type { ManagementReviewSummaryResponse, NonConformityStatus } from "@/types.ts";
+import type { LinkableEntity } from "@/lib/entity-links";
 
 export const NC_OPEN_STATUSES: NonConformityStatus[] = ["OPEN", "UNDER_TREATMENT"];
 
@@ -14,6 +15,9 @@ export interface AttentionItem {
   type: string;
   title: string;
   description: string;
+  /** Registo a que o ponto se refere (id do registo no ano), para ligar à sua página. */
+  entity: LinkableEntity;
+  entityId: number;
 }
 
 /**
@@ -31,6 +35,8 @@ export function buildAttentionItems(summary: ManagementReviewSummaryResponse | u
         type: "Processo",
         title: process.name,
         description: "Processo sem responsável definido.",
+        entity: "process",
+        entityId: process.processYearId,
       });
     }
     process.indicators.forEach((indicator) => {
@@ -40,6 +46,8 @@ export function buildAttentionItems(summary: ManagementReviewSummaryResponse | u
           type: "Indicador",
           title: indicator.name,
           description: `Sem medições no processo ${process.name}.`,
+          entity: "indicator",
+          entityId: indicator.indicatorYearId,
         });
       }
     });
@@ -52,6 +60,8 @@ export function buildAttentionItems(summary: ManagementReviewSummaryResponse | u
         type: "Objetivo",
         title: objective.name,
         description: "Objetivo ainda em curso.",
+        entity: "objective",
+        entityId: objective.qualityObjectiveYearId,
       });
     }
   });
@@ -63,6 +73,8 @@ export function buildAttentionItems(summary: ManagementReviewSummaryResponse | u
         type: "Não conformidade",
         title: nonConformity.name,
         description: `Estado: ${NC_STATUS_LABELS[nonConformity.status]}.`,
+        entity: "nonConformity",
+        entityId: nonConformity.nonConformityId,
       });
     }
   });

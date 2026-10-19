@@ -1,5 +1,5 @@
 import { FolderGit2, Users } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ProcessDropdown } from "./process-dropdown";
 import { ProcessDetailDialog } from "./process-detail-dialog";
 import type { ProcessHierarchyItem } from "@/types";
@@ -9,10 +9,20 @@ interface ProcessItemProps {
   macroProcessId: number;
   isExternal?: boolean;
   yearId: number | null;
+  /** Abrir o detalhe ao chegar por um link (ver hooks/use-year-and-open). */
+  autoOpen?: boolean;
+  onAutoOpened?: () => void;
 }
 
-export const ProcessItem: React.FC<ProcessItemProps> = ({ process, macroProcessId, isExternal = false, yearId }) => {
+export const ProcessItem: React.FC<ProcessItemProps> = ({ process, macroProcessId, isExternal = false, yearId, autoOpen = false, onAutoOpened }) => {
   const [detailOpen, setDetailOpen] = useState(false);
+
+  useEffect(() => {
+    if (autoOpen) {
+      setDetailOpen(true);
+      onAutoOpened?.();
+    }
+  }, [autoOpen, onAutoOpened]);
 
   return (
     <>

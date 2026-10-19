@@ -46,6 +46,7 @@ public class AuditController {
 
     @GetMapping("/{id}/non-conformities")
     public List<NonConformityResponse> getNonConformities(@PathVariable Long id) {
+        service.assertAccessible(id);
         return nonConformityService.getByAuditId(id);
     }
 

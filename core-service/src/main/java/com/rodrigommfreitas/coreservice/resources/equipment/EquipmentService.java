@@ -29,6 +29,7 @@ import java.util.Set;
 public class EquipmentService {
 
     private final EquipmentRepository repository;
+    private final com.rodrigommfreitas.coreservice.user.UserService userService;
     private final EquipmentYearRepository yearRepository;
     private final YearRepository yearRepo;
     private final MaintenanceRecordRepository maintenanceRecordRepository;
@@ -281,6 +282,7 @@ equipment.getName() + " — " + String.valueOf(year.getYear()),
 
     @Transactional(readOnly = true)
     public List<MaintenanceRecordResponse> getMaintenanceRecords(Long equipmentId) {
+        assertEquipmentAccessible(equipmentId);
 
         return maintenanceRecordRepository.findAllByEquipmentId(equipmentId)
                 .stream()
@@ -361,6 +363,7 @@ equipment.getName() + " — " + String.valueOf(year.getYear()),
 
     @Transactional(readOnly = true)
     public List<CalibrationRecordResponse> getCalibrationRecords(Long equipmentId) {
+        assertEquipmentAccessible(equipmentId);
 
         return calibrationRecordRepository.findAllByEquipmentId(equipmentId)
                 .stream()
@@ -458,6 +461,15 @@ equipment.getName() + " — " + String.valueOf(year.getYear()),
                 .max(Comparator.comparing(dateFn))
                 .map(dueDateFn)
                 .orElse(null);
+    }
+
+    /** Um equipamento existe em vários anos: um externo vê os registos se tiver acesso a pelo menos um. */
+    private void assertEquipmentAccessible(Long equipmentId) {
+        Equipment equipment = repository.findById(equipmentId)
+                .orElseThrow(() -> new RuntimeException("Equipment not found"));
+        userService.validateAnyYearAccess(equipment.getYears().stream()
+                .map(ey -> ey.getYear().getId())
+                .toList());
     }
 
     private MaintenanceRecordResponse mapToMaintenanceResponse(MaintenanceRecord record) {

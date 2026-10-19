@@ -81,6 +81,10 @@ public record ManagementReviewSummaryResponse(
     public record ActionSummary(
             String origin,
             String originName,
+            /** OBJECTIVE | NON_CONFORMITY | IMPROVEMENT_OPPORTUNITY | RISK_OPPORTUNITY — para ligar à entidade de origem. */
+            String originEntity,
+            /** Id da entidade de origem como a página respetiva o conhece (ver client/src/lib/entity-links.ts). */
+            Long originId,
             Long actionId,
             String title,
             String responsible,

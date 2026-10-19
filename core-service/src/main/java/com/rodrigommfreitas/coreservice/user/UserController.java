@@ -12,6 +12,7 @@ import com.rodrigommfreitas.coreservice.user.Role;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -74,6 +75,7 @@ public class UserController {
 
     @PatchMapping("/{id}/roles")
     @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("hasRole('SUPERADMIN')")
     public UserManagementDto updateRoles(@PathVariable Long id, @RequestBody Set<Role> roles) {
         return userService.updateRoles(id, roles);
     }
