@@ -73,6 +73,20 @@ public class UserController {
         return userService.getUsersByIds(ids);
     }
 
+    @GetMapping("/{id}/years")
+    @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("hasRole('SUPERADMIN')")
+    public List<Long> getAssignedYears(@PathVariable Long id) {
+        return userService.getAssignedYearIds(id);
+    }
+
+    @PutMapping("/{id}/years")
+    @ResponseStatus(HttpStatus.OK)
+    @PreAuthorize("hasRole('SUPERADMIN')")
+    public List<Long> updateAssignedYears(@PathVariable Long id, @RequestBody List<Long> yearIds) {
+        return userService.updateAssignedYears(id, yearIds);
+    }
+
     @PatchMapping("/{id}/roles")
     @ResponseStatus(HttpStatus.OK)
     @PreAuthorize("hasRole('SUPERADMIN')")

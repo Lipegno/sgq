@@ -32,6 +32,7 @@ import {
   TrendingUp,
   Network,
   UserCog,
+  Home,
 } from "lucide-react";
 
 import { NavUser } from "@/components/nav-user";
@@ -73,6 +74,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavTitle teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
+        <SidebarGroup>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Início">
+                <Link to="/inicio">
+                  <Home />
+                  <span>Início</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
         {(user?.roles?.includes("ROLE_SUPERADMIN") || user?.roles?.includes("ROLE_DEPARTMENT_MANAGER")) && (
           <SidebarGroup>
             <SidebarGroupLabel>Plataforma</SidebarGroupLabel>

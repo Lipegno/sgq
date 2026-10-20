@@ -1262,3 +1262,38 @@ export interface ManagementReviewMeetingResponse extends ManagementReviewMeeting
   year: number;
   documents: DocumentWithVersionsResponse[];
 }
+
+// ---------------------------------------------------------------------------
+// Página Início (GET /api/home?yearId=)
+// ---------------------------------------------------------------------------
+
+export type HomeProfile = "MANAGER" | "DEPARTMENT_MANAGER" | "AUDITOR" | "USER";
+
+export interface HomeItem {
+  title: string;
+  context: string | null;
+  badge: string | null;
+  tone: "danger" | "warning" | "accent" | "neutral";
+  date: string | null;
+  link: string | null;
+}
+
+/** Um bloco a null não se aplica ao perfil e não é mostrado. */
+export interface HomeResponse {
+  profile: HomeProfile;
+  userName: string;
+  departments: string[];
+  cycle: {
+    processes: number;
+    objectives: number;
+    objectivesAchieved: number;
+    indicators: number;
+    indicatorsWithMeasurements: number;
+    nonConformitiesOpen: number;
+  } | null;
+  attention: HomeItem[] | null;
+  myWork: HomeItem[];
+  missingMeasurements: HomeItem[] | null;
+  upcomingAudits: HomeItem[] | null;
+  recentActivity: HomeItem[] | null;
+}

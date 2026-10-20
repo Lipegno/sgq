@@ -68,17 +68,25 @@ import type {
 export interface ObjectiveAction {
   id?: number;
   actionText: string;      // AÇÕES A REALIZAR -> Ações
-  deadline: string;        // PRAZO
+  deadline: string;        // PRAZO (duração em texto, ex.: "12 MESES")
   resources: string;       // RECURSOS
   responsibleId: number | null; // RESPONSÁVEL
-  startDate: string;       // ACOMPANHAMENTO -> DATA INÍCIO
-  endDate: string;         // ACOMPANHAMENTO -> DATA CONCLUSÃO
+  startDate: string;       // DATA DE INÍCIO PREVISTA
+  endDate: string;         // DATA DE CONCLUSÃO PREVISTA (usada para detetar atrasos)
+  completedDate?: string | null; // ACOMPANHAMENTO -> DATA DE CONCLUSÃO EFETIVA
   q1Review: string;        // 1º Trimestre
   q2Review: string;        // 2º Trimestre
   q3Review: string;        // 3º Trimestre
   finalResult: string;     // ACOMPANHAMENTO -> Resultado Final
   targetAchieved: boolean; // ACOMPANHAMENTO -> Atingi Objetivo (Sim/Não)
   observations: string;    // ACOMPANHAMENTO -> Observações
+}
+
+// Uma ação está atrasada quando a data prevista já passou e ainda não foi concluída.
+function isActionOverdue(action: ObjectiveAction): boolean {
+  if (!action.endDate || action.completedDate) return false;
+  const today = new Date().toISOString().slice(0, 10);
+  return action.endDate < today;
 }
 
 const STATUS_LABELS: Record<QualityObjectiveStatus, string> = {
@@ -662,7 +670,7 @@ export default function QualityObjectivesPage() {
                         size="sm"
                         onClick={() => setFormActions([...formActions, {
                           actionText: "", deadline: "", resources: "", responsibleId: null,
-                          startDate: "", endDate: "", q1Review: "", q2Review: "", q3Review: "",
+                          startDate: "", endDate: "", completedDate: "", q1Review: "", q2Review: "", q3Review: "",
                           finalResult: "", targetAchieved: false, observations: ""
                         }])}
                       >
@@ -683,8 +691,13 @@ export default function QualityObjectivesPage() {
 
                           {/* Cabeçalho da Ação com botão de remover */}
                           <div className="flex items-center justify-between border-b border-border/60 pb-2">
-                            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            <span className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                               Ação #{index + 1}
+                              {isActionOverdue(action) && (
+                                <span className="rounded-md bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-destructive">
+                                  Atrasada
+                                </span>
+                              )}
                             </span>
                             {!ro && (
                               <button
@@ -710,10 +723,10 @@ export default function QualityObjectivesPage() {
                                 }} placeholder="Descrição detalhada do que vai ser feito..." className="h-9 text-sm" />
                               </div>
                               <div className="space-y-1">
-                                <label className="text-[11px] text-muted-foreground font-medium">Prazo</label>
+                                <label className="text-[11px] text-muted-foreground font-medium">Prazo (duração)</label>
                                 <Input disabled={ro} value={action.deadline} onChange={(e) => {
                                   const updated = [...formActions]; updated[index].deadline = e.target.value; setFormActions(updated);
-                                }} placeholder="Ex: Q2 2026, Março..." className="h-9 text-sm" />
+                                }} placeholder="Ex: 12 meses" className="h-9 text-sm" />
                               </div>
                               <div className="space-y-1">
                                 <label className="text-[11px] text-muted-foreground font-medium">Recursos</label>
@@ -735,6 +748,18 @@ export default function QualityObjectivesPage() {
                                   </SelectContent>
                                 </Select>
                               </div>
+                              <div className="space-y-1">
+                                <label className="text-[11px] text-muted-foreground font-medium">Data de Início Prevista</label>
+                                <input disabled={ro} type="date" value={action.startDate ?? ""} onChange={(e) => {
+                                  const updated = [...formActions]; updated[index].startDate = e.target.value; setFormActions(updated);
+                                }} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[11px] text-muted-foreground font-medium">Data de Conclusão Prevista</label>
+                                <input disabled={ro} type="date" value={action.endDate ?? ""} onChange={(e) => {
+                                  const updated = [...formActions]; updated[index].endDate = e.target.value; setFormActions(updated);
+                                }} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
+                              </div>
                             </div>
                           </div>
 
@@ -745,18 +770,12 @@ export default function QualityObjectivesPage() {
                             </span>
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                               <div className="space-y-1">
-                                <label className="text-[11px] text-muted-foreground font-medium">Data Início Real</label>
-                                <input disabled={ro} type="date" value={action.startDate} onChange={(e) => {
-                                  const updated = [...formActions]; updated[index].startDate = e.target.value; setFormActions(updated);
+                                <label className="text-[11px] text-muted-foreground font-medium">Data de Conclusão Efetiva</label>
+                                <input disabled={ro} type="date" value={action.completedDate ?? ""} onChange={(e) => {
+                                  const updated = [...formActions]; updated[index].completedDate = e.target.value; setFormActions(updated);
                                 }} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
                               </div>
-                              <div className="space-y-1">
-                                <label className="text-[11px] text-muted-foreground font-medium">Data Conclusão Real</label>
-                                <input disabled={ro} type="date" value={action.endDate} onChange={(e) => {
-                                  const updated = [...formActions]; updated[index].endDate = e.target.value; setFormActions(updated);
-                                }} className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
-                              </div>
-                              <div className="md:col-span-2 space-y-1">
+                              <div className="md:col-span-3 space-y-1">
                                 <label className="text-[11px] text-muted-foreground font-medium">Observações Gerais</label>
                                 <Input disabled={ro} value={action.observations} onChange={(e) => {
                                   const updated = [...formActions]; updated[index].observations = e.target.value; setFormActions(updated);

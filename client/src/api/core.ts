@@ -34,6 +34,7 @@ import type {
   MacroProcessDiagramResponse,
    HumanResourceResponsibilitiesResponse,
    ManagementReviewSummaryResponse,
+  HomeResponse,
   ManagementReviewMeetingRequest,
   ManagementReviewMeetingResponse,
 } from "@/types.ts";
@@ -1188,6 +1189,16 @@ export const getDepartmentUsers = async (departmentId: number): Promise<UserSumm
   return res.data;
 };
 
+export const getUserAssignedYears = async (userId: number): Promise<number[]> => {
+  const res = await api.get(`/users/${userId}/years`);
+  return res.data;
+};
+
+export const updateUserAssignedYears = async (userId: number, yearIds: number[]): Promise<number[]> => {
+  const res = await api.put(`/users/${userId}/years`, yearIds);
+  return res.data;
+};
+
 export const createUser = async (data: {
   firstName: string;
   lastName: string;
@@ -1554,5 +1565,13 @@ export const getManagementReviewSummary = async (
   const res = await api.get(
     `/management-reviews/year/${yearId}/summary`
   );
+  return res.data;
+};
+// ---------------------------------------------------------------------------
+// Início
+// ---------------------------------------------------------------------------
+
+export const getHome = async (yearId: number): Promise<HomeResponse> => {
+  const res = await api.get("/home", { params: { yearId } });
   return res.data;
 };

@@ -133,7 +133,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, String>> handleRuntime(RuntimeException ex) {
+        // Sem este registo, erros inesperados (ex.: NullPointerException) chegavam ao cliente
+        // como um 400 sem qualquer rasto no servidor.
+        log.error("Unhandled RuntimeException", ex);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("message", ex.getMessage()));
+                .body(Map.of("message", ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName()));
     }
 }

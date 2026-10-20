@@ -575,6 +575,7 @@ entityName + " — " + String.valueOf(year.getYear()),
             action.setResponsibleId(dto.getResponsibleId());
             action.setStartDate(dto.getStartDate());
             action.setEndDate(dto.getEndDate());
+            action.setCompletedDate(dto.getCompletedDate());
             action.setQ1Review(dto.getQ1Review());
             action.setQ2Review(dto.getQ2Review());
             action.setQ3Review(dto.getQ3Review());
@@ -596,6 +597,7 @@ entityName + " — " + String.valueOf(year.getYear()),
             dto.setResponsibleId(action.getResponsibleId());
             dto.setStartDate(action.getStartDate());
             dto.setEndDate(action.getEndDate());
+            dto.setCompletedDate(action.getCompletedDate());
             dto.setQ1Review(action.getQ1Review());
             dto.setQ2Review(action.getQ2Review());
             dto.setQ3Review(action.getQ3Review());

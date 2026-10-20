@@ -12,6 +12,7 @@ public class ObjectiveActionDto {
     private Long responsibleId;
     private LocalDate startDate;
     private LocalDate endDate;
+    private LocalDate completedDate;
     private String q1Review;
     private String q2Review;
     private String q3Review;

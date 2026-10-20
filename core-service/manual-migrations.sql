@@ -62,3 +62,9 @@ ALTER TABLE objective_actions ALTER COLUMN q1_review TYPE TEXT;
 ALTER TABLE objective_actions ALTER COLUMN q2_review TYPE TEXT;
 ALTER TABLE objective_actions ALTER COLUMN q3_review TYPE TEXT;
 ALTER TABLE objective_actions ALTER COLUMN final_result TYPE TEXT;
+
+-- Objetivos de Qualidade: data efetiva de conclusão de cada ação. O "Prazo" (deadline)
+-- é uma duração em texto ("12 MESES"); end_date passa a ser a data prevista e
+-- completed_date a data real. Uma ação está atrasada se end_date < hoje e
+-- completed_date é nula. Coluna nova, não altera dados existentes.
+ALTER TABLE objective_actions ADD COLUMN IF NOT EXISTS completed_date DATE;

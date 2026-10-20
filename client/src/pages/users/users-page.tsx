@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getUsers, updateUserRoles, createUser } from "@/api/core";
+import {
+  getUsers,
+  updateUserRoles,
+  createUser,
+  createExternalUser,
+  getYears,
+  getUserAssignedYears,
+  updateUserAssignedYears,
+} from "@/api/core";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -14,7 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { UserCog, Shield, Plus } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
-import type { UserSummary } from "@/types";
+import type { UserSummary, YearResponse } from "@/types";
 
 const ALL_ROLES = [
   { value: "ROLE_USER", label: "Utilizador" },
@@ -33,43 +41,79 @@ export default function UsersPage() {
   const [selectedUser, setSelectedUser] = useState<UserSummary & { roles: string[] } | null>(null);
   const [editRoles, setEditRoles] = useState<string[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
-  const [newUser, setNewUser] = useState({
+  const emptyNewUser = {
     firstName: "",
     lastName: "",
     email: "",
     password: "",
     confirmPassword: "",
-  });
+    accessType: "internal" as "internal" | "external",
+    yearIds: [] as number[],
+  };
+  const [newUser, setNewUser] = useState(emptyNewUser);
+  const [editYearIds, setEditYearIds] = useState<number[]>([]);
+  const [loadingEditYears, setLoadingEditYears] = useState(false);
+
   const { data: users, isLoading } = useQuery({
     queryKey: ["users"],
     queryFn: getUsers,
     enabled: isSuperAdmin,
   });
 
+  const { data: years } = useQuery({
+    queryKey: ["years"],
+    queryFn: getYears,
+    enabled: isSuperAdmin,
+  });
+  const sortedYears = [...(years ?? [])].sort((a, b) => b.year - a.year);
+  const currentYearId = sortedYears.find((y) => y.year === new Date().getFullYear())?.id;
+
+  const openCreate = () => {
+    // O ciclo atual vem pré-selecionado para os externos.
+    setNewUser({ ...emptyNewUser, yearIds: currentYearId ? [currentYearId] : [] });
+    setCreateOpen(true);
+  };
+
+  const openEdit = async (user: UserSummary & { roles: string[] }) => {
+    setSelectedUser(user);
+    setEditRoles(user.roles);
+    setEditYearIds([]);
+    setEditOpen(true);
+    if (user.roles.includes("ROLE_EXTERNAL")) {
+      setLoadingEditYears(true);
+      try {
+        setEditYearIds(await getUserAssignedYears(user.id));
+      } finally {
+        setLoadingEditYears(false);
+      }
+    }
+  };
+
   const createUserMutation = useMutation({
-    mutationFn: createUser,
+    mutationFn: ({ accessType, yearIds, ...data }: typeof emptyNewUser) =>
+      accessType === "external" ? createExternalUser({ ...data, yearIds }) : createUser(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
-
       setCreateOpen(false);
-
-      setNewUser({
-        firstName: "",
-        lastName: "",
-        email: "",
-        password: "",
-        confirmPassword: "",
-      });
+      setNewUser(emptyNewUser);
     },
   });
 
   const updateRolesMutation = useMutation({
-    mutationFn: ({ id, roles }: { id: number; roles: string[] }) => updateUserRoles(id, roles),
+    mutationFn: async ({ id, roles, yearIds }: { id: number; roles: string[]; yearIds: number[] }) => {
+      await updateUserRoles(id, roles);
+      // Os anos só contam para externos; para internos ficam como estão (ignorados).
+      if (roles.includes("ROLE_EXTERNAL")) {
+        await updateUserAssignedYears(id, yearIds);
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       setEditOpen(false);
     },
   });
+
+  const editIsExternal = editRoles.includes("ROLE_EXTERNAL");
 
   if (!isSuperAdmin) {
     return (
@@ -100,7 +144,7 @@ export default function UsersPage() {
           </div>
         </div>
         {canCreateUsers && (
-          <Button onClick={() => setCreateOpen(true)}>
+          <Button onClick={openCreate}>
             <Plus className="size-4 mr-2" />
             Adicionar utilizador
           </Button>
@@ -144,11 +188,7 @@ export default function UsersPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => {
-                        setSelectedUser({ ...user, roles: userRoles });
-                        setEditRoles(userRoles);
-                        setEditOpen(true);
-                      }}
+                      onClick={() => openEdit({ ...user, roles: userRoles })}
                     >
                       <Shield className="size-4 mr-1" /> Funções
                     </Button>
@@ -166,8 +206,9 @@ export default function UsersPage() {
             <DialogTitle>Adicionar utilizador</DialogTitle>
 
             <DialogDescription>
-              O novo utilizador será criado inicialmente com acesso externo.
-              As funções podem ser alteradas posteriormente.
+              Os utilizadores internos veem todos os ciclos. Os externos (por exemplo,
+              auditores de certificação) só veem os ciclos escolhidos. As funções podem
+              ser alteradas posteriormente.
             </DialogDescription>
           </DialogHeader>
 
@@ -264,6 +305,38 @@ export default function UsersPage() {
               />
             </div>
 
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Tipo de acesso</label>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  ["internal", "Interno", "Todos os ciclos"],
+                  ["external", "Externo", "Só os ciclos escolhidos"],
+                ] as const).map(([value, label, hint]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setNewUser({ ...newUser, accessType: value })}
+                    className={`rounded-md border px-3 py-2 text-left text-sm transition-colors ${
+                      newUser.accessType === value
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border hover:bg-muted/50"
+                    }`}
+                  >
+                    <span className="block font-medium">{label}</span>
+                    <span className="block text-xs text-muted-foreground">{hint}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {newUser.accessType === "external" && (
+              <YearChecklist
+                years={sortedYears}
+                selected={newUser.yearIds}
+                onChange={(yearIds) => setNewUser({ ...newUser, yearIds })}
+              />
+            )}
+
             {newUser.password &&
               newUser.confirmPassword &&
               newUser.password !== newUser.confirmPassword && (
@@ -289,7 +362,8 @@ export default function UsersPage() {
                 !newUser.email.trim() ||
                 !newUser.password ||
                 !newUser.confirmPassword ||
-                newUser.password !== newUser.confirmPassword
+                newUser.password !== newUser.confirmPassword ||
+                (newUser.accessType === "external" && newUser.yearIds.length === 0)
               }
             >
               {createUserMutation.isPending
@@ -305,7 +379,7 @@ export default function UsersPage() {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Editar Funções</DialogTitle>
+            <DialogTitle>Editar funções e acesso</DialogTitle>
             <DialogDescription>
               {selectedUser?.firstName} {selectedUser?.lastName} ({selectedUser?.email})
             </DialogDescription>
@@ -335,6 +409,18 @@ export default function UsersPage() {
               </label>
             ))}
           </div>
+          {editIsExternal && (
+            <div className="mt-4 border-t pt-4">
+              {loadingEditYears ? (
+                <p className="text-sm text-muted-foreground">A carregar ciclos...</p>
+              ) : (
+                <YearChecklist years={sortedYears} selected={editYearIds} onChange={setEditYearIds} />
+              )}
+            </div>
+          )}
+          {updateRolesMutation.isError && (
+            <p className="mt-2 text-sm text-destructive">Não foi possível guardar as alterações.</p>
+          )}
           <DialogFooter className="mt-4">
             <DialogClose asChild>
               <Button variant="outline">Cancelar</Button>
@@ -342,16 +428,47 @@ export default function UsersPage() {
             <Button
               onClick={() => {
                 if (selectedUser) {
-                  updateRolesMutation.mutate({ id: selectedUser.id, roles: editRoles });
+                  updateRolesMutation.mutate({ id: selectedUser.id, roles: editRoles, yearIds: editYearIds });
                 }
               }}
-              disabled={updateRolesMutation.isPending}
+              disabled={updateRolesMutation.isPending || loadingEditYears}
             >
               {updateRolesMutation.isPending ? "Guardando..." : "Guardar"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+function YearChecklist({
+  years,
+  selected,
+  onChange,
+}: {
+  years: YearResponse[];
+  selected: number[];
+  onChange: (yearIds: number[]) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <label className="text-sm font-medium">Ciclos autorizados</label>
+      <div className="flex flex-wrap gap-3">
+        {years.map((year) => (
+          <label key={year.id} className="flex items-center gap-2 cursor-pointer text-sm">
+            <Checkbox
+              checked={selected.includes(year.id)}
+              onCheckedChange={(checked) =>
+                onChange(checked ? [...selected, year.id] : selected.filter((id) => id !== year.id))
+              }
+            />
+            {year.year}
+          </label>
+        ))}
+      </div>
+      {selected.length === 0 && (
+        <p className="text-xs text-muted-foreground">Sem ciclos, o utilizador externo não consegue consultar nada.</p>
+      )}
     </div>
   );
 }

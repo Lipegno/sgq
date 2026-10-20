@@ -32,6 +32,9 @@ public class ObjectiveAction {
     @Column(name = "end_date")
     private LocalDate endDate;
 
+    @Column(name = "completed_date")
+    private LocalDate completedDate;
+
     @Column(name = "q1_review", columnDefinition = "TEXT")
     private String q1Review;
 

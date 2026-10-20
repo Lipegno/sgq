@@ -53,6 +53,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 
@@ -439,8 +440,10 @@ public class ManagementReviewService {
                         action.getId(),
                         action.getActionText(),
                         resolveUserName(action.getResponsibleId()),
-                        action.isTargetAchieved() ? "FINISHED" : "IN_PROGRESS",
-                        action.getDeadline()
+                        action.getCompletedDate() != null || action.isTargetAchieved() ? "FINISHED" : "IN_PROGRESS",
+                        action.getEndDate() != null
+                                ? action.getEndDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                                : action.getDeadline()
                 ));
             }
         }

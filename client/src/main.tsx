@@ -38,6 +38,7 @@ import UsersPage from "./pages/users/users-page";
 import ImprovementOpportunitiesPage from "./pages/improvement-opportunities/improvement-opportunities-page";
 import CustomerSatisfactionPage from "./pages/customer-satisfaction/customer-satisfaction-page";
 import ManagementReviewPage from "./pages/management-review/management-review-page";
+import HomePage from "./pages/home/home-page";
 import SuppliersPage from "./pages/suppliers/suppliers-page";
 import YearsPage from "./pages/years/years-page";
 
@@ -94,7 +95,14 @@ const router = createBrowserRouter(
           </RequireAuth>
         }
       >
-        <Route index element={<Navigate to="/non-conformities" replace />} />
+        <Route index element={<Navigate to="/inicio" replace />} />
+        <Route
+          path="inicio"
+          element={<HomePage />}
+          handle={{
+            breadcrumb: () => "Início",
+          }}
+        />
         <Route
           path="ambito"
           element={<ScopePage />}

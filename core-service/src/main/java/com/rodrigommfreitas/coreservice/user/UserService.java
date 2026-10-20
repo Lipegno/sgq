@@ -21,7 +21,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.rodrigommfreitas.coreservice.security.CallerRoles;
 
+import jakarta.persistence.EntityNotFoundException;
+
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -38,22 +41,7 @@ public class UserService {
 
     @Transactional
     public CreateUserResponse createUser(CreateUserRequest request) {
-        Long currentUserId = UserContextHolder.getUserId();
-
-        if (currentUserId == null) {
-            throw new AccessDeniedException("Utilizador não autenticado");
-        }
-
-        User currentUser = userRepository.findById(currentUserId)
-                .orElseThrow(() ->
-                        new AccessDeniedException("Utilizador não autenticado")
-                );
-
-        if (!currentUser.getEmail().equalsIgnoreCase(bootstrapAdminEmail)) {
-            throw new AccessDeniedException(
-                    "Apenas o administrador principal pode criar utilizadores"
-            );
-        }
+        requirePrimaryAdmin();
 
         if (!request.password().equals(request.confirmPassword())) {
             throw new PasswordsDontMatchException();
@@ -68,7 +56,8 @@ public class UserService {
                 .password(passwordEncoder.encode(request.password()))
                 .firstName(request.firstName())
                 .lastName(request.lastName())
-                .roles(Set.of(Role.ROLE_EXTERNAL))
+                // Contas internas: veem todos os ciclos. Os externos são criados em createExternalUser.
+                .roles(Set.of(Role.ROLE_USER))
                 .build();
 
         User saved = userRepository.save(user);
@@ -81,6 +70,11 @@ public class UserService {
 
     @Transactional
     public CreateUserResponse createExternalUser(CreateExternalUserRequest request) {
+        // Até aqui este endpoint não tinha qualquer verificação. A página de Auditorias deixa
+        // qualquer utilizador interno criar o auditor externo de uma auditoria; um externo não.
+        if (UserContextHolder.getUserId() == null || CallerRoles.isExternal()) {
+            throw new AccessDeniedException("Sem permissão para criar utilizadores externos.");
+        }
         if (!request.password().equals(request.confirmPassword())) {
             throw new PasswordsDontMatchException();
         }
@@ -111,11 +105,74 @@ public class UserService {
         return new CreateUserResponse(saved.getId(), saved.getEmail());
     }
 
+    /** Só o administrador principal cria contas. */
+    private void requirePrimaryAdmin() {
+        Long currentUserId = UserContextHolder.getUserId();
+
+        if (currentUserId == null) {
+            throw new AccessDeniedException("Utilizador não autenticado");
+        }
+
+        User currentUser = userRepository.findById(currentUserId)
+                .orElseThrow(() ->
+                        new AccessDeniedException("Utilizador não autenticado")
+                );
+
+        if (!currentUser.getEmail().equalsIgnoreCase(bootstrapAdminEmail)) {
+            throw new AccessDeniedException(
+                    "Apenas o administrador principal pode criar utilizadores"
+            );
+        }
+    }
+
+    /** Anos atribuídos explicitamente a um utilizador (só relevante para externos). */
+    @Transactional(readOnly = true)
+    public List<Long> getAssignedYearIds(Long userId) {
+        if (!CallerRoles.isSuperAdmin()) {
+            throw new AccessDeniedException("Apenas um Super Administrador pode consultar os anos atribuídos.");
+        }
+        return userYearAccessRepository.findByUserId(userId).stream()
+                .map(uya -> uya.getYear().getId())
+                .sorted()
+                .toList();
+    }
+
+    /** Substitui os anos atribuídos a um utilizador pelo conjunto indicado. */
+    @Transactional
+    public List<Long> updateAssignedYears(Long userId, Collection<Long> yearIds) {
+        if (!CallerRoles.isSuperAdmin()) {
+            throw new AccessDeniedException("Apenas um Super Administrador pode alterar os anos atribuídos.");
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id " + userId));
+        Set<Long> wanted = new HashSet<>(yearIds != null ? yearIds : List.of());
+
+        List<UserYearAccess> current = userYearAccessRepository.findByUserId(userId);
+        Set<Long> existing = new HashSet<>();
+        for (UserYearAccess access : current) {
+            Long yearId = access.getYear().getId();
+            if (wanted.contains(yearId)) {
+                existing.add(yearId);
+            } else {
+                userYearAccessRepository.delete(access);
+            }
+        }
+        for (Year year : yearRepository.findAllById(wanted)) {
+            if (!existing.contains(year.getId())) {
+                userYearAccessRepository.save(UserYearAccess.builder().user(user).year(year).build());
+            }
+        }
+        return getAssignedYearIds(userId);
+    }
+
     @Transactional(readOnly = true)
     public List<Long> getAccessibleYearIds(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with id " + userId));
-        if (user.getRoles().stream().anyMatch(r -> r != Role.ROLE_EXTERNAL)) {
+        // Mesma regra que validateYearAccess: quem tem ROLE_EXTERNAL (mesmo acumulando outro papel)
+        // só acede aos anos atribuídos. Antes bastava ter outro papel para receber todos os anos,
+        // que depois eram recusados com 403 em todas as páginas por ano.
+        if (user.getRoles().stream().noneMatch(r -> r == Role.ROLE_EXTERNAL)) {
             return yearRepository.findAll().stream().map(Year::getId).toList();
         }
         return userYearAccessRepository.findByUserId(userId).stream()
