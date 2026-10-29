@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 
 import { YearSelector } from "@/components/year-selector";
 import { YearDocumentsSection } from "@/components/year-documents-section";
@@ -26,6 +27,7 @@ import {
   AlertTriangle,
   ArrowDownRight,
   ArrowRight,
+  BarChart3,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
@@ -53,7 +55,7 @@ import {
 import type { NonConformityOrigin } from "@/types.ts";
 import { buildAttentionItems, NC_OPEN_STATUSES, NC_STATUS_LABELS } from "./management-review-attention";
 import { ManagementReviewPresentation } from "./management-review-presentation";
-import { IndicatorResultsSection } from "./indicator-results-section";
+import { IndicatorResultsSummary } from "./indicator-results-section";
 import { EntityLink } from "@/components/entity-link";
 import type { LinkableEntity } from "@/lib/entity-links";
 
@@ -256,7 +258,6 @@ export default function ManagementReviewPage() {
     (summary?.overview.nonConformitiesOpen ?? 0);
 
   const attentionItems = useMemo(() => buildAttentionItems(summary), [summary]);
-  const processOrder = useMemo(() => summary?.processes.map((p) => p.processYearId) ?? [], [summary]);
   const documents = yearDetail?.documents ?? [];
 
   /* ---------------------------------------------------------------------- */
@@ -464,6 +465,15 @@ export default function ManagementReviewPage() {
             title="Desempenho dos processos"
             subtitle="Resultados dos processos e respetivos indicadores"
           >
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <IndicatorResultsSummary yearId={selectedYearId} year={presentationYear} />
+              <Button asChild variant="outline" size="sm">
+                <Link to={`/revisao-gestao/indicadores?ano=${selectedYearId}`}>
+                  <BarChart3 className="size-4" />
+                  Ver gráficos dos indicadores
+                </Link>
+              </Button>
+            </div>
             <div className="space-y-3">
               {summary?.processes.map((process) => {
                 const expanded = expandedProcesses.includes(process.processYearId);
@@ -547,14 +557,25 @@ export default function ManagementReviewPage() {
                     {expanded && (
                       <div className="px-5 pb-5 border-t border-border bg-muted/20">
                         <div className="pt-4 space-y-3">
-                          <EntityLink
-                            entity="process"
-                            id={process.processYearId}
-                            yearId={selectedYearId}
-                            className="inline-block text-sm font-medium"
-                          >
-                            Abrir processo
-                          </EntityLink>
+                          <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
+                            <EntityLink
+                              entity="process"
+                              id={process.processYearId}
+                              yearId={selectedYearId}
+                              className="inline-block text-sm font-medium"
+                            >
+                              Abrir processo
+                            </EntityLink>
+                            {process.indicators.length > 0 && (
+                              <Link
+                                to={`/revisao-gestao/indicadores?ano=${selectedYearId}&processo=${process.processYearId}`}
+                                className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline underline-offset-2"
+                              >
+                                <BarChart3 size={14} />
+                                Ver gráficos dos indicadores
+                              </Link>
+                            )}
+                          </div>
                           {process.indicators.length === 0 ? (
                             <div className="text-sm text-muted-foreground">
                               Este processo não possui indicadores associados.
@@ -616,21 +637,6 @@ export default function ManagementReviewPage() {
                 );
               })}
             </div>
-          </Section>
-
-          {/* ---------------------------------------------------------------- */}
-          {/* 2.1 RESULTADOS DOS INDICADORES (gráficos)                        */}
-          {/* ---------------------------------------------------------------- */}
-
-          <Section
-            title="Resultados dos indicadores"
-            subtitle="Evolução das medições de cada indicador, por processo, face à meta"
-          >
-            <IndicatorResultsSection
-              yearId={selectedYearId}
-              year={presentationYear}
-              processOrder={processOrder}
-            />
           </Section>
 
           {/* ---------------------------------------------------------------- */}

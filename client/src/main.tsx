@@ -38,6 +38,7 @@ import UsersPage from "./pages/users/users-page";
 import ImprovementOpportunitiesPage from "./pages/improvement-opportunities/improvement-opportunities-page";
 import CustomerSatisfactionPage from "./pages/customer-satisfaction/customer-satisfaction-page";
 import ManagementReviewPage from "./pages/management-review/management-review-page";
+import ManagementReviewIndicatorsPage from "./pages/management-review/management-review-indicators-page";
 import HomePage from "./pages/home/home-page";
 import SuppliersPage from "./pages/suppliers/suppliers-page";
 import YearsPage from "./pages/years/years-page";
@@ -261,6 +262,14 @@ const router = createBrowserRouter(
           handle={{
             group: "9. Avaliação de desempenho",
             breadcrumb: () => "9.3. Revisão pela Gestão",
+          }}
+        />
+        <Route
+          path="revisao-gestao/indicadores"
+          element={<ManagementReviewIndicatorsPage />}
+          handle={{
+            group: "9. Avaliação de desempenho",
+            breadcrumb: () => "9.3. Resultados dos indicadores",
           }}
         />
         <Route

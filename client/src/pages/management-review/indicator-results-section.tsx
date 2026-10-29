@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ArrowDownRight, CheckCircle2, ChevronDown, ChevronUp, Clock, Minus, TrendingUp } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EntityLink } from "@/components/entity-link";
 import { getIndicatorsByYear } from "@/api/core";
 import type { IndicatorWithProcesses } from "@/types";
@@ -161,15 +162,42 @@ function tallySummary(t: Tally, count: number): string {
   return parts.join(" · ");
 }
 
+/** Uma linha com o balanço dos indicadores, para a página da revisão (os gráficos estão noutra página). */
+export function IndicatorResultsSummary({ yearId, year }: { yearId: number | null; year: number | undefined }) {
+  const { data } = useQuery({
+    queryKey: ["indicators", yearId],
+    queryFn: () => getIndicatorsByYear(yearId!),
+    enabled: yearId !== null,
+  });
+  const totals = useMemo(() => {
+    const now = new Date();
+    return tally((data ?? []).map((i) => getResult(i, year, now)));
+  }, [data, year]);
+  if (!data?.length) return null;
+  return (
+    <p className="text-sm text-muted-foreground">
+      Indicadores: <span className="font-semibold text-foreground">{totals.met}</span> com meta atingida,{" "}
+      <span className="font-semibold text-foreground">{totals.near}</span> perto e{" "}
+      <span className="font-semibold text-foreground">{totals.far}</span> longe da meta;{" "}
+      <span className="font-semibold text-foreground">{totals.incomplete}</span> com medições em falta.
+    </p>
+  );
+}
+
 /** `year`: ano civil (decide que medições já são devidas). `processOrder`: ordem dos processos na página. */
 export function IndicatorResultsSection({
   yearId,
   year,
   processOrder = [],
+  processYearId = null,
+  onProcessChange,
 }: {
   yearId: number | null;
   year: number | undefined;
   processOrder?: number[];
+  /** processo escolhido (filtra a lista); null = todos */
+  processYearId?: number | null;
+  onProcessChange?: (processYearId: number | null) => void;
 }) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["indicators", yearId],
@@ -178,7 +206,12 @@ export function IndicatorResultsSection({
   });
 
   const [onlyAttention, setOnlyAttention] = useState(false);
-  const [expanded, setExpanded] = useState<number[]>([]);
+  const [expanded, setExpanded] = useState<number[]>(processYearId !== null ? [processYearId] : []);
+
+  // Ao escolher (ou chegar com) um processo, mostra-o já aberto.
+  useEffect(() => {
+    if (processYearId !== null) setExpanded([processYearId]);
+  }, [processYearId]);
 
   const results = useMemo(() => {
     const now = new Date();
@@ -200,6 +233,7 @@ export function IndicatorResultsSection({
   const toggle = (key: number) =>
     setExpanded((current) => (current.includes(key) ? current.filter((k) => k !== key) : [...current, key]));
   const visibleGroups = groups
+    .filter((g) => processYearId === null || g.key === processYearId)
     .map((g) => ({
       ...g,
       shown: onlyAttention ? g.indicators.filter((i) => needsAttention(results.get(i)!)) : g.indicators,
@@ -229,7 +263,27 @@ export function IndicatorResultsSection({
           <span className="inline-flex items-center gap-1.5"><span className="inline-block size-2 rounded-sm bg-amber-500" />perto (a menos de 25%)</span>
           <span className="inline-flex items-center gap-1.5"><span className="inline-block size-2 rounded-sm bg-red-500" />longe da meta</span>
         </p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {onProcessChange && (
+            <Select
+              value={processYearId === null ? "all" : String(processYearId)}
+              onValueChange={(v) => onProcessChange(v === "all" ? null : Number(v))}
+            >
+              <SelectTrigger className="h-8 w-[230px]">
+                <SelectValue placeholder="Todos os processos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os processos</SelectItem>
+                {groups
+                  .filter((g) => g.key !== NO_PROCESS)
+                  .map((g) => (
+                    <SelectItem key={g.key} value={String(g.key)}>
+                      {g.name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          )}
           <Button variant={onlyAttention ? "default" : "outline"} size="sm" onClick={() => setOnlyAttention((v) => !v)}>
             {onlyAttention ? "A mostrar só os que requerem atenção" : "Só os que requerem atenção"}
           </Button>
@@ -264,7 +318,7 @@ export function IndicatorResultsSection({
               {open ? <ChevronUp size={18} className="shrink-0" /> : <ChevronDown size={18} className="shrink-0" />}
             </button>
             {open && (
-              <div className="grid gap-3 pb-4 md:grid-cols-2">
+              <div className="grid gap-3 pb-4 md:grid-cols-2 xl:grid-cols-3">
                 {group.shown.map((indicator) => (
                   <IndicatorCard
                     key={indicator.indicatorYearId ?? indicator.id}
