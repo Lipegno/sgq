@@ -15,8 +15,8 @@ interface Point {
   notes?: string | null;
 }
 
-const HEIGHT = 128;
-const PAD = { top: 18, right: 6, bottom: 20, left: 6 };
+const HEIGHT = 96;
+const PAD = { top: 16, right: 6, bottom: 18, left: 6 };
 
 /** Cor de cada barra pelo seu estado face à meta (classes completas para o Tailwind as encontrar). */
 const BAR_CLASS = {
@@ -25,12 +25,6 @@ const BAR_CLASS = {
   far: { on: "fill-red-500", off: "fill-red-500/55" },
   none: { on: "fill-primary", off: "fill-primary/55" },
 } as const;
-
-const LEGEND = [
-  { key: "met", label: "Atingida", swatch: "bg-emerald-500" },
-  { key: "near", label: "Perto da meta", swatch: "bg-amber-500" },
-  { key: "far", label: "Longe da meta", swatch: "bg-red-500" },
-] as const;
 
 /** Largura real do contentor, para o texto do gráfico ter sempre o mesmo tamanho. */
 function useWidth() {
@@ -79,7 +73,7 @@ export function IndicatorBarChart({
   const activePoint = hover !== null ? points[hover] : null;
 
   return (
-    <div ref={ref}>
+    <div ref={ref} className="relative">
       <svg
         width={width}
         height={HEIGHT}
@@ -122,7 +116,7 @@ export function IndicatorBarChart({
                   {formatValue(v, valueType)}
                 </text>
               )}
-              <text x={cx} y={HEIGHT - 6} textAnchor="middle" className="fill-muted-foreground" fontSize={9}>
+              <text x={cx} y={HEIGHT - 5} textAnchor="middle" className="fill-muted-foreground" fontSize={9}>
                 {shortDate(p.measurementDate)}
               </text>
               <rect x={cx - slot / 2} y={PAD.top} width={slot} height={innerH + PAD.bottom} fill="transparent" />
@@ -144,33 +138,12 @@ export function IndicatorBarChart({
         )}
       </svg>
 
-      <p className="text-xs text-muted-foreground min-h-4 truncate">
-        {activePoint ? (
-          <>
-            <span className="font-medium text-foreground">{longDate(activePoint.measurementDate)}</span>
-            {`: ${formatValue(Number(activePoint.value), valueType)}`}
-            {activePoint.notes ? ` — ${activePoint.notes}` : ""}
-          </>
-        ) : (
-          "Passa o rato numa barra para ver o detalhe."
-        )}
-      </p>
-
-      {target && (
-        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-          <span className="inline-flex items-center gap-1">
-            <svg width="16" height="6" aria-hidden="true">
-              <line x1="0" x2="16" y1="3" y2="3" className="stroke-foreground/70" strokeWidth="1.25" strokeDasharray="4 3" />
-            </svg>
-            Meta
-          </span>
-          {LEGEND.map((l) => (
-            <span key={l.key} className="inline-flex items-center gap-1">
-              <span className={`inline-block size-2 rounded-sm ${l.swatch}`} />
-              {l.label}
-            </span>
-          ))}
-        </div>
+      {activePoint && (
+        <p className="pointer-events-none absolute inset-x-0 top-0 truncate rounded bg-card/95 px-1 text-[11px] text-muted-foreground">
+          <span className="font-medium text-foreground">{longDate(activePoint.measurementDate)}</span>
+          {`: ${formatValue(Number(activePoint.value), valueType)}`}
+          {activePoint.notes ? ` — ${activePoint.notes}` : ""}
+        </p>
       )}
     </div>
   );

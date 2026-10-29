@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EntityLink } from "@/components/entity-link";
 import { getIndicatorsByYear } from "@/api/core";
 import type { IndicatorWithProcesses } from "@/types";
-import { formatTarget, getResult, needsAttention, type IndicatorResult, type IndicatorStatus } from "@/lib/indicator-results";
+import { formatTarget, formatValue, getResult, needsAttention, type IndicatorResult, type IndicatorStatus } from "@/lib/indicator-results";
 import { IndicatorBarChart } from "./indicator-bar-chart";
 
 const FREQUENCY_LABELS: Record<string, string> = {
@@ -18,10 +18,10 @@ const FREQUENCY_LABELS: Record<string, string> = {
   WEEKLY: "Semanal",
 };
 
-const GOOD = "text-emerald-700 bg-emerald-50 border-emerald-200 dark:text-emerald-300 dark:bg-emerald-950/30 dark:border-emerald-900";
-const WARN = "text-amber-700 bg-amber-50 border-amber-200 dark:text-amber-300 dark:bg-amber-950/30 dark:border-amber-900";
-const BAD = "text-red-700 bg-red-50 border-red-200 dark:text-red-300 dark:bg-red-950/30 dark:border-red-900";
-const NEUTRAL = "text-muted-foreground bg-muted/40 border-border";
+const GOOD = "text-emerald-700 dark:text-emerald-400";
+const WARN = "text-amber-700 dark:text-amber-400";
+const BAD = "text-red-700 dark:text-red-400";
+const NEUTRAL = "text-muted-foreground";
 
 /** Cada estado leva ícone e texto, nunca só cor. */
 const STATUS: Record<IndicatorStatus, { label: string; icon: typeof CheckCircle2; className: string }> = {
@@ -86,10 +86,10 @@ function tally(results: IndicatorResult[]): Tally {
   return t;
 }
 
-function StatusBadge({ status }: { status: IndicatorStatus }) {
+function StatusText({ status }: { status: IndicatorStatus }) {
   const { label, icon: Icon, className } = STATUS[status];
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap shrink-0 ${className}`}>
+    <span className={`inline-flex items-center gap-1 text-xs font-medium whitespace-nowrap ${className}`}>
       <Icon size={12} />
       {label}
     </span>
@@ -97,47 +97,41 @@ function StatusBadge({ status }: { status: IndicatorStatus }) {
 }
 
 function MissingNote({ result, frequency }: { result: IndicatorResult; frequency: string }) {
-  if (result.status === "not-due") {
-    return (
-      <p className="text-sm text-muted-foreground rounded-lg border border-dashed border-border py-5 px-3 text-center">
-        {frequency === "ANNUAL"
-          ? "Indicador anual: é normal ainda não ter medições."
-          : "Ainda não é devida nenhuma medição neste ano."}
-      </p>
-    );
-  }
-  return (
-    <p className={`text-sm rounded-lg border border-dashed py-5 px-3 text-center ${WARN}`}>
-      Sem medições: já {result.expected === 1 ? "devia haver 1" : `deviam existir ${result.expected}`}.
-    </p>
-  );
+  const text =
+    result.status === "not-due"
+      ? frequency === "ANNUAL"
+        ? "Indicador anual: é normal ainda não ter medições."
+        : "Ainda não é devida nenhuma medição neste ano."
+      : `Já ${result.expected === 1 ? "devia haver 1 medição" : `deviam existir ${result.expected} medições`}.`;
+  return <p className="text-xs text-muted-foreground">{text}</p>;
 }
 
 function IndicatorCard({ indicator, yearId, result }: { indicator: IndicatorWithProcesses; yearId: number; result: IndicatorResult }) {
-  const { status, target, measurements, missing } = result;
+  const { status, target, measurements, missing, last } = result;
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4 flex flex-col gap-3">
-      <div className="flex items-start justify-between gap-3">
+    <div className="rounded-xl border border-border p-4 flex flex-col gap-2">
+      <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-foreground leading-snug">
+          <p className="text-sm font-semibold text-foreground leading-snug line-clamp-2" title={indicator.name}>
             <EntityLink entity="indicator" id={indicator.indicatorYearId} yearId={yearId}>
               {indicator.name}
             </EntityLink>
           </p>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <p className="text-xs text-muted-foreground mt-1">
             {FREQUENCY_LABELS[indicator.frequency] ?? indicator.frequency}
-            {target && ` · Meta ${formatTarget(target, indicator.valueType)}`}
+            {missing > 0 && measurements.length > 0 && (
+              <span className={`inline-flex items-center gap-1 ml-2 font-medium ${WARN}`}>
+                <AlertTriangle size={11} />
+                {missing === 1 ? "falta 1 medição" : `faltam ${missing} medições`}
+              </span>
+            )}
           </p>
         </div>
-        <div className="flex flex-col items-end gap-1">
-          <StatusBadge status={status} />
-          {missing > 0 && measurements.length > 0 && (
-            <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap ${WARN}`}>
-              <AlertTriangle size={12} />
-              {missing === 1 ? "Falta 1 medição" : `Faltam ${missing} medições`}
-            </span>
-          )}
+        <div className="text-right shrink-0 space-y-1">
+          {last && <p className="text-xl font-semibold leading-none text-foreground">{formatValue(Number(last.value), indicator.valueType)}</p>}
+          {last && target && <p className="text-xs text-muted-foreground">meta {formatTarget(target, indicator.valueType)}</p>}
+          <StatusText status={status} />
         </div>
       </div>
 
@@ -213,8 +207,8 @@ export function IndicatorResultsSection({
     .filter((g) => g.shown.length > 0);
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-4">
         <p className="text-sm text-muted-foreground">
           <span className="font-semibold text-foreground">{data.length}</span> indicadores:{" "}
           <span className="font-semibold text-foreground">{totals.met}</span> com meta atingida,{" "}
@@ -223,6 +217,17 @@ export function IndicatorResultsSection({
           {totals.noTarget} sem meta numérica e{" "}
           <span className="font-semibold text-foreground">{totals.incomplete}</span> com medições em falta
           {totals.notDue > 0 && ` (mais ${totals.notDue} ainda sem dados, normal nos anuais)`}. A avaliação usa a última medição.
+        </p>
+        <p className="w-full text-xs text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1">
+          <span className="inline-flex items-center gap-1.5">
+            <svg width="16" height="6" aria-hidden="true">
+              <line x1="0" x2="16" y1="3" y2="3" className="stroke-foreground/70" strokeWidth="1.25" strokeDasharray="4 3" />
+            </svg>
+            meta
+          </span>
+          <span className="inline-flex items-center gap-1.5"><span className="inline-block size-2 rounded-sm bg-emerald-500" />atingida</span>
+          <span className="inline-flex items-center gap-1.5"><span className="inline-block size-2 rounded-sm bg-amber-500" />perto (a menos de 25%)</span>
+          <span className="inline-flex items-center gap-1.5"><span className="inline-block size-2 rounded-sm bg-red-500" />longe da meta</span>
         </p>
         <div className="flex gap-2">
           <Button variant={onlyAttention ? "default" : "outline"} size="sm" onClick={() => setOnlyAttention((v) => !v)}>
@@ -242,12 +247,12 @@ export function IndicatorResultsSection({
         const open = expanded.includes(group.key);
         const t = tally(group.indicators.map((i) => results.get(i)!));
         return (
-          <div key={group.key} className="border border-border rounded-xl overflow-hidden">
+          <div key={group.key} className="border-t border-border first:border-t-0">
             <button
               type="button"
               onClick={() => toggle(group.key)}
               aria-expanded={open}
-              className="w-full flex items-center justify-between gap-4 p-4 text-left hover:bg-muted/40 transition-colors"
+              className="w-full flex items-center justify-between gap-4 py-4 text-left hover:bg-muted/40 transition-colors rounded-lg"
             >
               <div className="min-w-0">
                 <p className="font-semibold text-foreground">{group.name}</p>
@@ -259,7 +264,7 @@ export function IndicatorResultsSection({
               {open ? <ChevronUp size={18} className="shrink-0" /> : <ChevronDown size={18} className="shrink-0" />}
             </button>
             {open && (
-              <div className="grid gap-3 p-4 pt-0 md:grid-cols-2">
+              <div className="grid gap-3 pb-4 md:grid-cols-2">
                 {group.shown.map((indicator) => (
                   <IndicatorCard
                     key={indicator.indicatorYearId ?? indicator.id}
