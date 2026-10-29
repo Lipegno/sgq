@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, ArrowDownRight, CheckCircle2, ChevronDown, ChevronUp, Clock, Minus, TrendingUp } from "lucide-react";
+import { AlertTriangle, ArrowDownRight, CheckCircle2, ChevronDown, ChevronUp, Clock, Download, Loader2, Minus, TrendingUp } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -8,16 +9,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { EntityLink } from "@/components/entity-link";
 import { getIndicatorsByYear } from "@/api/core";
 import type { IndicatorWithProcesses } from "@/types";
-import { formatTarget, formatValue, getResult, needsAttention, type IndicatorResult, type IndicatorStatus } from "@/lib/indicator-results";
+import {
+  FREQUENCY_LABELS,
+  NO_PROCESS,
+  STATUS_LABELS,
+  formatTarget,
+  formatValue,
+  getResult,
+  groupByProcess,
+  measurementNote,
+  missingNoteText,
+  needsAttention,
+  tally,
+  tallySummary,
+  type IndicatorResult,
+  type IndicatorStatus,
+} from "@/lib/indicator-results";
 import { IndicatorBarChart } from "./indicator-bar-chart";
-
-const FREQUENCY_LABELS: Record<string, string> = {
-  ANNUAL: "Anual",
-  SEMESTER: "Semestral",
-  TRIMESTER: "Trimestral",
-  MONTHLY: "Mensal",
-  WEEKLY: "Semanal",
-};
 
 const GOOD = "text-emerald-700 dark:text-emerald-400";
 const WARN = "text-amber-700 dark:text-amber-400";
@@ -25,86 +33,27 @@ const BAD = "text-red-700 dark:text-red-400";
 const NEUTRAL = "text-muted-foreground";
 
 /** Cada estado leva ícone e texto, nunca só cor. */
-const STATUS: Record<IndicatorStatus, { label: string; icon: typeof CheckCircle2; className: string }> = {
-  met: { label: "Meta atingida", icon: CheckCircle2, className: GOOD },
-  near: { label: "Perto da meta", icon: TrendingUp, className: WARN },
-  far: { label: "Longe da meta", icon: ArrowDownRight, className: BAD },
-  "no-target": { label: "Sem meta numérica", icon: Minus, className: NEUTRAL },
-  "no-data": { label: "Sem medições", icon: AlertTriangle, className: WARN },
-  "not-due": { label: "Ainda sem dados", icon: Clock, className: NEUTRAL },
+const STATUS: Record<IndicatorStatus, { icon: typeof CheckCircle2; className: string }> = {
+  met: { icon: CheckCircle2, className: GOOD },
+  near: { icon: TrendingUp, className: WARN },
+  far: { icon: ArrowDownRight, className: BAD },
+  "no-target": { icon: Minus, className: NEUTRAL },
+  "no-data": { icon: AlertTriangle, className: WARN },
+  "not-due": { icon: Clock, className: NEUTRAL },
 };
 
-const NO_PROCESS = -1;
-
-interface ProcessGroup {
-  key: number;
-  name: string;
-  macro: string | null;
-  indicators: IndicatorWithProcesses[];
-}
-
-function groupByProcess(indicators: IndicatorWithProcesses[], processOrder: number[]): ProcessGroup[] {
-  const rank = (key: number) => {
-    const i = processOrder.indexOf(key);
-    return i === -1 ? Number.MAX_SAFE_INTEGER : i;
-  };
-  const groups = new Map<number, ProcessGroup>();
-  for (const indicator of indicators) {
-    const processes = indicator.processes?.length
-      ? indicator.processes.map((p) => ({ key: p.processYearId, name: p.processName, macro: p.macroProcessName }))
-      : [{ key: NO_PROCESS, name: "Sem processo associado", macro: null }];
-    for (const p of processes) {
-      const group = groups.get(p.key) ?? { key: p.key, name: p.name, macro: p.macro, indicators: [] };
-      group.indicators.push(indicator);
-      groups.set(p.key, group);
-    }
-  }
-  return [...groups.values()]
-    .sort((a, b) => (a.key === NO_PROCESS ? 1 : b.key === NO_PROCESS ? -1 : rank(a.key) - rank(b.key) || (a.macro ?? "").localeCompare(b.macro ?? "") || a.name.localeCompare(b.name)))
-    .map((g) => ({ ...g, indicators: [...g.indicators].sort((a, b) => a.name.localeCompare(b.name)) }));
-}
-
-interface Tally {
-  met: number;
-  near: number;
-  far: number;
-  noTarget: number;
-  /** com medições já devidas por registar (não inclui os anuais ainda não devidos) */
-  incomplete: number;
-  notDue: number;
-}
-
-function tally(results: IndicatorResult[]): Tally {
-  const t: Tally = { met: 0, near: 0, far: 0, noTarget: 0, incomplete: 0, notDue: 0 };
-  for (const r of results) {
-    if (r.status === "met") t.met += 1;
-    else if (r.status === "near") t.near += 1;
-    else if (r.status === "far") t.far += 1;
-    else if (r.status === "no-target") t.noTarget += 1;
-    else if (r.status === "not-due") t.notDue += 1;
-    if (r.missing > 0) t.incomplete += 1;
-  }
-  return t;
-}
-
 function StatusText({ status }: { status: IndicatorStatus }) {
-  const { label, icon: Icon, className } = STATUS[status];
+  const { icon: Icon, className } = STATUS[status];
   return (
     <span className={`inline-flex items-center gap-1 text-xs font-medium whitespace-nowrap ${className}`}>
       <Icon size={12} />
-      {label}
+      {STATUS_LABELS[status]}
     </span>
   );
 }
 
 function MissingNote({ result, frequency }: { result: IndicatorResult; frequency: string }) {
-  const text =
-    result.status === "not-due"
-      ? frequency === "ANNUAL"
-        ? "Indicador anual: é normal ainda não ter medições."
-        : "Ainda não é devida nenhuma medição neste ano."
-      : `Já ${result.expected === 1 ? "devia haver 1 medição" : `deviam existir ${result.expected} medições`}.`;
-  return <p className="text-xs text-muted-foreground">{text}</p>;
+  return <p className="text-xs text-muted-foreground">{missingNoteText(result, frequency)}</p>;
 }
 
 function IndicatorCard({ indicator, yearId, result }: { indicator: IndicatorWithProcesses; yearId: number; result: IndicatorResult }) {
@@ -120,7 +69,7 @@ function IndicatorCard({ indicator, yearId, result }: { indicator: IndicatorWith
             </EntityLink>
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            {FREQUENCY_LABELS[indicator.frequency] ?? indicator.frequency}
+            {FREQUENCY_LABELS[indicator.frequency] ?? indicator.frequency ?? ""}
             {missing > 0 && measurements.length > 0 && (
               <span className={`inline-flex items-center gap-1 ml-2 font-medium ${WARN}`}>
                 <AlertTriangle size={11} />
@@ -141,7 +90,7 @@ function IndicatorCard({ indicator, yearId, result }: { indicator: IndicatorWith
           points={measurements.map((m) => ({
             measurementDate: m.measurementDate,
             value: Number(m.value),
-            notes: m.notes?.startsWith("Importado da Matriz") ? null : m.notes,
+            notes: measurementNote(m.notes),
           }))}
           valueType={indicator.valueType}
           target={target}
@@ -151,15 +100,6 @@ function IndicatorCard({ indicator, yearId, result }: { indicator: IndicatorWith
       )}
     </div>
   );
-}
-
-function tallySummary(t: Tally, count: number): string {
-  const parts = [`${count} indicador(es)`];
-  if (t.met) parts.push(`${t.met} com meta atingida`);
-  if (t.near) parts.push(`${t.near} perto da meta`);
-  if (t.far) parts.push(`${t.far} longe da meta`);
-  if (t.incomplete) parts.push(`${t.incomplete} com medições em falta`);
-  return parts.join(" · ");
 }
 
 /** Uma linha com o balanço dos indicadores, para a página da revisão (os gráficos estão noutra página). */
@@ -206,6 +146,7 @@ export function IndicatorResultsSection({
   });
 
   const [onlyAttention, setOnlyAttention] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [expanded, setExpanded] = useState<number[]>(processYearId !== null ? [processYearId] : []);
 
   // Ao escolher (ou chegar com) um processo, mostra-o já aberto.
@@ -239,6 +180,28 @@ export function IndicatorResultsSection({
       shown: onlyAttention ? g.indicators.filter((i) => needsAttention(results.get(i)!)) : g.indicators,
     }))
     .filter((g) => g.shown.length > 0);
+
+  // o que está à vista (processo e filtro de atenção) é o que vai para o PowerPoint
+  const exportPowerPoint = async () => {
+    setExporting(true);
+    try {
+      const { exportIndicatorsPptx } = await import("@/lib/export-indicators-pptx");
+      await exportIndicatorsPptx({
+        year,
+        filterNote: onlyAttention ? "só os que requerem atenção" : undefined,
+        groups: visibleGroups.map((g) => ({
+          name: g.name,
+          macro: g.macro,
+          summary: tallySummary(tally(g.indicators.map((i) => results.get(i)!)), g.indicators.length),
+          entries: g.shown.map((indicator) => ({ indicator, result: results.get(indicator)! })),
+        })),
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao gerar o PowerPoint");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <div>
@@ -293,6 +256,10 @@ export function IndicatorResultsSection({
             onClick={() => setExpanded(expanded.length === visibleGroups.length ? [] : visibleGroups.map((g) => g.key))}
           >
             {expanded.length === visibleGroups.length ? "Recolher tudo" : "Expandir tudo"}
+          </Button>
+          <Button variant="outline" size="sm" onClick={exportPowerPoint} disabled={exporting || visibleGroups.length === 0}>
+            {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+            {exporting ? "A gerar…" : "Exportar PowerPoint"}
           </Button>
         </div>
       </div>

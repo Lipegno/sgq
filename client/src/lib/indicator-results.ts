@@ -144,6 +144,101 @@ export function needsAttention(result: IndicatorResult): boolean {
   return result.status === "far" || result.status === "near" || result.status === "no-data" || result.missing > 0;
 }
 
+export const FREQUENCY_LABELS: Record<string, string> = {
+  ANNUAL: "Anual",
+  SEMESTER: "Semestral",
+  TRIMESTER: "Trimestral",
+  MONTHLY: "Mensal",
+  WEEKLY: "Semanal",
+};
+
+export const STATUS_LABELS: Record<IndicatorStatus, string> = {
+  met: "Meta atingida",
+  near: "Perto da meta",
+  far: "Longe da meta",
+  "no-target": "Sem meta numérica",
+  "no-data": "Sem medições",
+  "not-due": "Ainda sem dados",
+};
+
+/** O que dizer de um indicador sem medições (ou sem as que já eram devidas). */
+export function missingNoteText(result: IndicatorResult, frequency: string): string {
+  if (result.status === "not-due") {
+    return frequency === "ANNUAL"
+      ? "Indicador anual: é normal ainda não ter medições."
+      : "Ainda não é devida nenhuma medição neste ano.";
+  }
+  return `Já ${result.expected === 1 ? "devia haver 1 medição" : `deviam existir ${result.expected} medições`}.`;
+}
+
+export const NO_PROCESS = -1;
+
+export interface ProcessGroup {
+  key: number;
+  name: string;
+  macro: string | null;
+  indicators: IndicatorWithProcesses[];
+}
+
+/** Indicadores por processo, na ordem `processOrder` (os que não constam vão para o fim). */
+export function groupByProcess(indicators: IndicatorWithProcesses[], processOrder: number[]): ProcessGroup[] {
+  const rank = (key: number) => {
+    const i = processOrder.indexOf(key);
+    return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+  };
+  const groups = new Map<number, ProcessGroup>();
+  for (const indicator of indicators) {
+    const processes = indicator.processes?.length
+      ? indicator.processes.map((p) => ({ key: p.processYearId, name: p.processName, macro: p.macroProcessName }))
+      : [{ key: NO_PROCESS, name: "Sem processo associado", macro: null }];
+    for (const p of processes) {
+      const group = groups.get(p.key) ?? { key: p.key, name: p.name, macro: p.macro, indicators: [] };
+      group.indicators.push(indicator);
+      groups.set(p.key, group);
+    }
+  }
+  return [...groups.values()]
+    .sort((a, b) => (a.key === NO_PROCESS ? 1 : b.key === NO_PROCESS ? -1 : rank(a.key) - rank(b.key) || (a.macro ?? "").localeCompare(b.macro ?? "") || a.name.localeCompare(b.name)))
+    .map((g) => ({ ...g, indicators: [...g.indicators].sort((a, b) => a.name.localeCompare(b.name)) }));
+}
+
+export interface Tally {
+  met: number;
+  near: number;
+  far: number;
+  noTarget: number;
+  /** com medições já devidas por registar (não inclui os anuais ainda não devidos) */
+  incomplete: number;
+  notDue: number;
+}
+
+export function tally(results: IndicatorResult[]): Tally {
+  const t: Tally = { met: 0, near: 0, far: 0, noTarget: 0, incomplete: 0, notDue: 0 };
+  for (const r of results) {
+    if (r.status === "met") t.met += 1;
+    else if (r.status === "near") t.near += 1;
+    else if (r.status === "far") t.far += 1;
+    else if (r.status === "no-target") t.noTarget += 1;
+    else if (r.status === "not-due") t.notDue += 1;
+    if (r.missing > 0) t.incomplete += 1;
+  }
+  return t;
+}
+
+export function tallySummary(t: Tally, count: number): string {
+  const parts = [`${count} indicador(es)`];
+  if (t.met) parts.push(`${t.met} com meta atingida`);
+  if (t.near) parts.push(`${t.near} perto da meta`);
+  if (t.far) parts.push(`${t.far} longe da meta`);
+  if (t.incomplete) parts.push(`${t.incomplete} com medições em falta`);
+  return parts.join(" · ");
+}
+
+/** Notas das medições importadas da folha não dizem nada à gestão. */
+export function measurementNote(notes: string | null | undefined): string | null {
+  return notes?.startsWith("Importado da Matriz") ? null : (notes ?? null);
+}
+
 const number = new Intl.NumberFormat("pt-PT", { maximumFractionDigits: 2 });
 const percent = new Intl.NumberFormat("pt-PT", { maximumFractionDigits: 1 });
 const euro = new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR", maximumFractionDigits: 2 });

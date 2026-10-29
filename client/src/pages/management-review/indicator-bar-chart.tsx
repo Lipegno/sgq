@@ -105,7 +105,7 @@ export function IndicatorBarChart({
               {(labelAll || i === points.length - 1) && (
                 <text
                   x={cx}
-                  y={v >= 0 ? top - 4 : top + h + 11}
+                  y={v >= 0 ? top - 4 : zero - 4}
                   textAnchor="middle"
                   className="fill-foreground"
                   fontSize={10}
