@@ -254,6 +254,19 @@ export const createMeasurement = async (indicatorYearId: number, data: {
   return res.data;
 };
 
+export const updateMeasurement = async (measurementId: number, data: {
+  measurementDate?: string;
+  value?: number;
+  notes?: string | null;
+}) => {
+  const res = await api.put(`/measurements/${measurementId}`, data);
+  return res.data;
+};
+
+export const deleteMeasurement = async (measurementId: number): Promise<void> => {
+  await api.delete(`/measurements/${measurementId}`);
+};
+
 export const deleteIndicator = async (indicatorYearId: number): Promise<void> => {
   await api.delete(`/indicators/${indicatorYearId}`);
 };

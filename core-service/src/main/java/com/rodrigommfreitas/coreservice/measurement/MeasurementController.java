@@ -31,4 +31,10 @@ public class MeasurementController {
     ) {
         return measurementService.updateMeasurement(measurementId, request);
     }
+
+    @DeleteMapping("/{measurementId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteMeasurement(@PathVariable Long measurementId) {
+        measurementService.deleteMeasurement(measurementId);
+    }
 }

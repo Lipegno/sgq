@@ -83,6 +83,20 @@ public class MeasurementService {
         );
     }
 
+    @Transactional
+    public void deleteMeasurement(Long measurementId) {
+        Measurement measurement = measurementRepository.findById(measurementId)
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.NOT_FOUND, "Measurement not found"));
+
+        IndicatorYear indicatorYear = measurement.getIndicatorYear();
+        logMeasurementChange(indicatorYear, measurement.getMeasurementDate(),
+                describe(measurement.getMeasurementValue(), measurement.getNotes()), "(removida)");
+
+        indicatorYear.getMeasurements().remove(measurement);
+        measurementRepository.delete(measurement);
+    }
+
     private static String describe(BigDecimal value, String notes) {
         String v = value != null ? value.stripTrailingZeros().toPlainString() : "";
         return notes != null && !notes.isBlank() ? v + " (" + notes + ")" : v;

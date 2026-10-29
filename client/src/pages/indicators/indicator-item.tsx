@@ -11,6 +11,7 @@ import {
   MoreVertical,
   Calendar,
   Trash2,
+  Pencil,
   History,
 } from "lucide-react";
 import {
@@ -35,6 +36,8 @@ import { useAuth } from "@/context/auth-context";
 import {
   updateIndicator,
   createMeasurement,
+  updateMeasurement,
+  deleteMeasurement,
   associateIndicatorProcesses,
   disassociateIndicatorProcesses,
   deleteIndicator,
@@ -124,6 +127,10 @@ export const IndicatorItem: React.FC<IndicatorItemProps> = ({ indicator, yearId,
     goal: indicator.goal?.toString() ?? "",
     notes: indicator.notes ?? "",
   });
+
+  const [editingMeasurementId, setEditingMeasurementId] = useState<number | null>(null);
+  const [editMeasurement, setEditMeasurement] = useState({ date: "", value: "", notes: "" });
+  const [measurementToDelete, setMeasurementToDelete] = useState<{ id: number; date: string; value: number } | null>(null);
 
   const [mDate, setMDate] = useState("");
   const [mValue, setMValue] = useState("");
@@ -238,6 +245,31 @@ const { data: humanResources } = useQuery({
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message ?? "Erro ao registar medição");
+    },
+  });
+
+  const updateMeasurementMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: { measurementDate: string; value: number; notes: string } }) =>
+      updateMeasurement(id, data),
+    onSuccess: () => {
+      toast.success("Medição atualizada com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["indicators", yearId] });
+      setEditingMeasurementId(null);
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message ?? "Erro ao atualizar medição");
+    },
+  });
+
+  const deleteMeasurementMutation = useMutation({
+    mutationFn: (id: number) => deleteMeasurement(id),
+    onSuccess: () => {
+      toast.success("Medição eliminada com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["indicators", yearId] });
+      setMeasurementToDelete(null);
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message ?? "Erro ao eliminar medição");
     },
   });
 
@@ -700,15 +732,92 @@ const { data: humanResources } = useQuery({
                 <div className="space-y-2">
                   {[...measurements]
                     .sort((a, b) => (a.measurementDate > b.measurementDate ? -1 : 1))
-                    .map((m) => (
-                      <div key={m.id} className="flex items-center justify-between text-sm bg-card border border-border px-4 py-3 rounded-lg shadow-sm">
-                        <div className="flex items-center gap-4">
-                          <span className="font-mono text-muted-foreground">{m.measurementDate}</span>
-                          <span className="font-bold text-foreground">{m.value}</span>
-                          {m.notes && <span className="text-muted-foreground">— {m.notes}</span>}
+                    .map((m) =>
+                      editingMeasurementId === m.id ? (
+                        <div key={m.id} className="bg-muted/50 border border-border rounded-xl p-4 space-y-3">
+                          <div className="grid grid-cols-3 gap-3">
+                            <div className="grid gap-1">
+                              <Label className="text-xs">Data</Label>
+                              <Input
+                                type="date"
+                                value={editMeasurement.date}
+                                onChange={(e) => setEditMeasurement((f) => ({ ...f, date: e.target.value }))}
+                              />
+                            </div>
+                            <div className="grid gap-1">
+                              <Label className="text-xs">Valor</Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                value={editMeasurement.value}
+                                onChange={(e) => setEditMeasurement((f) => ({ ...f, value: e.target.value }))}
+                              />
+                            </div>
+                            <div className="grid gap-1">
+                              <Label className="text-xs">Notas</Label>
+                              <Input
+                                value={editMeasurement.notes}
+                                onChange={(e) => setEditMeasurement((f) => ({ ...f, notes: e.target.value }))}
+                              />
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 justify-end">
+                            <Button variant="outline" size="sm" onClick={() => setEditingMeasurementId(null)}>
+                              Cancelar
+                            </Button>
+                            <Button
+                              size="sm"
+                              disabled={updateMeasurementMutation.isPending}
+                              onClick={() => {
+                                if (!editMeasurement.date || editMeasurement.value === "") {
+                                  toast.error("Preencha a data e o valor.");
+                                  return;
+                                }
+                                updateMeasurementMutation.mutate({
+                                  id: m.id,
+                                  data: {
+                                    measurementDate: editMeasurement.date,
+                                    value: Number(editMeasurement.value),
+                                    notes: editMeasurement.notes,
+                                  },
+                                });
+                              }}
+                            >
+                              {updateMeasurementMutation.isPending ? "A guardar..." : "Guardar"}
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ) : (
+                        <div key={m.id} className="flex items-center justify-between gap-3 text-sm bg-card border border-border px-4 py-3 rounded-lg shadow-sm">
+                          <div className="flex items-center gap-4 min-w-0">
+                            <span className="font-mono text-muted-foreground">{m.measurementDate}</span>
+                            <span className="font-bold text-foreground">{m.value}</span>
+                            {m.notes && <span className="text-muted-foreground truncate">— {m.notes}</span>}
+                          </div>
+                          {!isExternal && (
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                onClick={() => {
+                                  setEditingMeasurementId(m.id);
+                                  setEditMeasurement({ date: m.measurementDate, value: String(m.value), notes: m.notes ?? "" });
+                                }}
+                                className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all cursor-pointer"
+                                title="Editar medição"
+                              >
+                                <Pencil size={14} />
+                              </button>
+                              <button
+                                onClick={() => setMeasurementToDelete({ id: m.id, date: m.measurementDate, value: Number(m.value) })}
+                                className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all cursor-pointer"
+                                title="Eliminar medição"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ),
+                    )}
                 </div>
               ) : (
                 <div className="py-8 text-center border-2 border-dashed border-border rounded-lg text-muted-foreground text-sm">
@@ -748,6 +857,15 @@ const { data: humanResources } = useQuery({
           minYears={1}
         />
       )}
+
+      <ConfirmDialog
+        open={measurementToDelete !== null}
+        onOpenChange={(o) => { if (!o) setMeasurementToDelete(null); }}
+        title="Eliminar Medição"
+        description={measurementToDelete ? `Tem a certeza que deseja eliminar a medição de ${measurementToDelete.date} (valor ${measurementToDelete.value})? Esta ação não pode ser desfeita.` : ""}
+        confirmLabel="Eliminar"
+        onConfirm={() => measurementToDelete && deleteMeasurementMutation.mutate(measurementToDelete.id)}
+      />
 
       <ConfirmDialog
         open={confirmDeleteOpen}
