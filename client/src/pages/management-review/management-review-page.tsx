@@ -53,6 +53,7 @@ import {
 import type { NonConformityOrigin } from "@/types.ts";
 import { buildAttentionItems, NC_OPEN_STATUSES, NC_STATUS_LABELS } from "./management-review-attention";
 import { ManagementReviewPresentation } from "./management-review-presentation";
+import { IndicatorResultsSection } from "./indicator-results-section";
 import { EntityLink } from "@/components/entity-link";
 import type { LinkableEntity } from "@/lib/entity-links";
 
@@ -255,6 +256,7 @@ export default function ManagementReviewPage() {
     (summary?.overview.nonConformitiesOpen ?? 0);
 
   const attentionItems = useMemo(() => buildAttentionItems(summary), [summary]);
+  const processOrder = useMemo(() => summary?.processes.map((p) => p.processYearId) ?? [], [summary]);
   const documents = yearDetail?.documents ?? [];
 
   /* ---------------------------------------------------------------------- */
@@ -614,6 +616,21 @@ export default function ManagementReviewPage() {
                 );
               })}
             </div>
+          </Section>
+
+          {/* ---------------------------------------------------------------- */}
+          {/* 2.1 RESULTADOS DOS INDICADORES (gráficos)                        */}
+          {/* ---------------------------------------------------------------- */}
+
+          <Section
+            title="Resultados dos indicadores"
+            subtitle="Evolução das medições de cada indicador, por processo, face à meta"
+          >
+            <IndicatorResultsSection
+              yearId={selectedYearId}
+              year={presentationYear}
+              processOrder={processOrder}
+            />
           </Section>
 
           {/* ---------------------------------------------------------------- */}
